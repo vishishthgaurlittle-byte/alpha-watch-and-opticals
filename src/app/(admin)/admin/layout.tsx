@@ -8,7 +8,6 @@ const adminNav = [
   { id: "/admin", label: "Dashboard", icon: "📊" },
   { id: "/admin/products", label: "Products", icon: "📦" },
   { id: "/admin/orders", label: "Orders", icon: "🧾" },
-  { id: "/admin/customers", label: "Customers", icon: "👥" },
   { id: "/admin/coupons", label: "Coupons", icon: "🏷" },
   { id: "/admin/reviews", label: "Reviews", icon: "⭐" },
   { id: "/admin/theme", label: "Store Theme", icon: "🎨" },
@@ -49,17 +48,35 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             <nav className="flex-1 py-4 space-y-1 px-2">
               {adminNav.map((n) => (
-                <Link key={n.id} href={n.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${pathname === n.id ? "bg-gold text-navy font-semibold" : "text-ivory/70 hover:bg-white/10"}`}>
-                  <span>{n.icon}</span><span className="hidden md:inline">{n.label}</span>
+                <Link
+                  key={n.id}
+                  href={n.id}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${
+                    pathname === n.id ? "bg-gold text-navy font-semibold" : "text-ivory/70 hover:bg-white/10"
+                  }`}
+                >
+                  <span>{n.icon}</span>
+                  <span className="hidden md:inline">{n.label}</span>
                 </Link>
               ))}
             </nav>
             <div className="p-3 border-t border-white/10 space-y-1">
-              <Link href="/" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-ivory/70 hover:bg-white/10">
-                <span>🏬</span><span className="hidden md:inline">View Store</span>
+              <Link
+                href="/"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-ivory/70 hover:bg-white/10"
+              >
+                <span>🏬</span>
+                <span className="hidden md:inline">View Store</span>
               </Link>
-              <button onClick={() => { logout(); router.push("/admin"); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-300 hover:bg-red-500/10">
-                <span>🚪</span><span className="hidden md:inline">Logout</span>
+              <button
+                onClick={() => {
+                  logout();
+                  router.push("/admin");
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-300 hover:bg-red-500/10"
+              >
+                <span>🚪</span>
+                <span className="hidden md:inline">Logout</span>
               </button>
             </div>
           </aside>
@@ -71,9 +88,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   // not admin -> show admin login
-  return (
-    <AdminGate showLogin={showLogin} onSuccess={() => setShowLogin(false)} />
-  );
+  return <AdminGate showLogin={showLogin} onSuccess={() => setShowLogin(false)} />;
 }
 
 function AdminGate({ showLogin, onSuccess }: { showLogin: boolean; onSuccess: () => void }) {
@@ -87,10 +102,17 @@ function AdminGate({ showLogin, onSuccess }: { showLogin: boolean; onSuccess: ()
     e.preventDefault();
     setErr("");
     const res = await login(email, password);
-    if (res) { setErr(res); return; }
+    if (res) {
+      setErr(res);
+      return;
+    }
     const u = useAuth.getState().user;
-    if (u?.role === "admin") { onSuccess(); }
-    else { setErr("This account does not have admin access."); login("", ""); }
+    if (u?.role === "admin") {
+      onSuccess();
+    } else {
+      setErr("This account does not have admin access.");
+      login("", "");
+    }
   };
 
   if (!showLogin) return <div className="min-h-screen bg-navy-950 flex items-center justify-center">Loading…</div>;
@@ -130,7 +152,9 @@ function AdminGate({ showLogin, onSuccess }: { showLogin: boolean; onSuccess: ()
           </div>
           <button className="btn-gold w-full py-3.5 rounded-full font-semibold">Login</button>
         </div>
-        <Link href="/" className="block text-center text-xs text-gold underline mt-4">← Back to store</Link>
+        <Link href="/" className="block text-center text-xs text-gold underline mt-4">
+          ← Back to store
+        </Link>
       </form>
     </div>
   );

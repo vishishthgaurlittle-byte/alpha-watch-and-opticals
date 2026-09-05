@@ -31,9 +31,11 @@ yarn-error.log*
 *.db-journal
 prisma/*.db
 prisma/*.db-journal
+prisma/store.json
 test_suite.js
 theme.test.js
 insforge.test.js
+test-features.cjs
 
 # typescript
 *.tsbuildinfo

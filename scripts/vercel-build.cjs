@@ -36,17 +36,21 @@ function run(cmd, allowFail = false) {
   }
 }
 
+const prismaBin = fs.existsSync(path.join(__dirname, "..", "node_modules", ".bin", "prisma"))
+  ? `"${path.join(__dirname, "..", "node_modules", ".bin", "prisma")}"`
+  : "npx prisma";
+
 // 2. Prisma Generate
-run("npx --no-install prisma generate || npx prisma generate");
+run(`${prismaBin} generate`);
 
 // 3. If SQLite file database, push schema to create tables
 if (process.env.DATABASE_URL.startsWith("file:")) {
   console.log("\n📦 Setting up SQLite tables for deployment...");
-  run("npx --no-install prisma db push --skip-generate --accept-data-loss || npx prisma db push --skip-generate --accept-data-loss", true);
+  run(`${prismaBin} db push --skip-generate --accept-data-loss`, true);
 
   // Try to seed initial catalog and admin if possible
   console.log("\n🌱 Seeding database...");
-  run("npx --no-install prisma db seed || npx prisma db seed", true);
+  run(`${prismaBin} db seed`, true);
 }
 
 // 4. Next.js Production Build

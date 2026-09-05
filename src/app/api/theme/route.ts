@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { DEFAULT_THEME, isValidThemeId } from "@/theme/palettes";
+import { getSetting } from "@/lib/db";
 
 export async function GET() {
   try {
     const user = await getCurrentUser();
 
-    let globalTheme = DEFAULT_THEME;
+    let globalTheme = getSetting("globalTheme", DEFAULT_THEME);
     try {
       const setting = await prisma.setting.findUnique({
         where: { id: "global_settings" }
@@ -16,7 +17,7 @@ export async function GET() {
         globalTheme = setting.globalTheme;
       }
     } catch {
-      // fallback to default
+      // fallback to store setting
     }
 
     const personalTheme = user?.themePreference || null;

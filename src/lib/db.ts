@@ -1,9 +1,8 @@
 // ============================================================
 // LOCAL PERSISTENT DATA LAYER  (mock "Insforge" backend)
-// Mirrors the Insforge database collections/schema. Data is
-// persisted to localStorage so the full eCommerce flow works
-// end-to-end in the demo. Swap these functions for real
-// Insforge SDK/REST calls when connecting production.
+// Mirrors the database collections/schema. Data is
+// persisted to server memory + disk and client localStorage
+// so all edits and orders stay live and persist across refreshes.
 // ============================================================
 import type {
   User,
@@ -90,7 +89,7 @@ const PRODUCTS: Product[] = [
     specs: {
       "Case Diameter": "41 mm",
       Movement: "Automatic (21 jewels)",
-      "Glass": "Sapphire-coated mineral",
+      Glass: "Sapphire-coated mineral",
       "Water Resistance": "5 ATM",
       Strap: "Stainless Steel Bracelet",
       Warranty: "2 Years"
@@ -210,8 +209,8 @@ const PRODUCTS: Product[] = [
       "Frame Material": "Premium Acetate",
       Shape: "Rectangular",
       "Lens Type": "Single Vision / Progressive",
-      "Included": "Hard Case + Cloth",
-      "Free": "Frame Fitting & Adjustment",
+      Included: "Hard Case + Cloth",
+      Free: "Frame Fitting & Adjustment",
       Warranty: "1 Year"
     },
     images: ["/images/products/optical-frame.jpg", "/images/products/sunglasses-aviator.jpg"],
@@ -240,7 +239,7 @@ const PRODUCTS: Product[] = [
       "Wear Time": "Daily Disposable",
       "Base Curve": "8.6 mm",
       "Pack Size": "30 Lenses",
-      "Includes": "Fitting & Trial",
+      Includes: "Fitting & Trial",
       Warranty: "—"
     },
     images: ["/images/products/contact-lens.jpg"],
@@ -269,7 +268,7 @@ const PRODUCTS: Product[] = [
       Material: "Top-grain Leather",
       "Strap Width": "18 / 20 / 22 mm",
       Buckle: "Brushed Gold Steel",
-      "Fitting": "Free In-Store",
+      Fitting: "Free In-Store",
       Warranty: "6 Months"
     },
     images: ["/images/products/watch-strap.jpg"],
@@ -281,7 +280,6 @@ const PRODUCTS: Product[] = [
     rating: 4.5,
     reviews_count: 1
   }),
-  // A draft product to demonstrate admin publishing controls
   product({
     id: "p-draft",
     name: "Emerald Automatic Limited Edition",
@@ -334,29 +332,93 @@ function seed(): DBShape {
     carts: { guest: [] },
     lastViewed: {},
     wishlist: [],
-    settings: {}
+    settings: {
+      globalTheme: "obsidian"
+    }
   };
 }
 
-let cache: DBShape | null = null;
+const globalForDB = globalThis as unknown as { aw_server_db?: DBShape };
+
+function getDiskFilePath(): string {
+  if (typeof window !== "undefined") return "";
+  const isServerless = Boolean(
+    process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.LAMBDA_TASK_ROOT
+  );
+  if (isServerless) {
+    return "/tmp/awopticals_db.json";
+  }
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const nodePath = require("path");
+    return nodePath.join(process.cwd(), "prisma", "store.json");
+  } catch {
+    return "/tmp/awopticals_db.json";
+  }
+}
+
+function loadFromServerDisk(): DBShape {
+  if (typeof window !== "undefined") return seed();
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const nodeFs = require("fs");
+    const filePath = getDiskFilePath();
+    if (filePath && nodeFs.existsSync(filePath)) {
+      const raw = nodeFs.readFileSync(filePath, "utf8");
+      if (raw) return JSON.parse(raw);
+    }
+  } catch (err) {
+    console.warn("Could not read DB from disk:", err);
+  }
+  return seed();
+}
+
+function saveToServerDisk(db: DBShape) {
+  if (typeof window !== "undefined") return;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const nodeFs = require("fs");
+    const filePath = getDiskFilePath();
+    if (filePath) {
+      nodeFs.writeFileSync(filePath, JSON.stringify(db, null, 2), "utf8");
+    }
+  } catch (err) {
+    console.warn("Could not write DB to disk:", err);
+  }
+}
+
+let clientCache: DBShape | null = null;
 
 export function getDB(): DBShape {
-  if (typeof window === "undefined") return seed();
-  if (cache) return cache;
+  // Server-side
+  if (typeof window === "undefined") {
+    if (!globalForDB.aw_server_db) {
+      globalForDB.aw_server_db = loadFromServerDisk();
+    }
+    return globalForDB.aw_server_db;
+  }
+
+  // Client-side
+  if (clientCache) return clientCache;
   try {
     const raw = localStorage.getItem(NS);
-    cache = raw ? (JSON.parse(raw) as DBShape) : seed();
+    clientCache = raw ? (JSON.parse(raw) as DBShape) : seed();
   } catch {
-    cache = seed();
+    clientCache = seed();
   }
-  return cache;
+  return clientCache;
 }
 
 export function saveDB() {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined") {
+    if (globalForDB.aw_server_db) {
+      saveToServerDisk(globalForDB.aw_server_db);
+    }
+    return;
+  }
   try {
-    if (cache) {
-      localStorage.setItem(NS, JSON.stringify(cache));
+    if (clientCache) {
+      localStorage.setItem(NS, JSON.stringify(clientCache));
     }
   } catch (e) {
     console.error("saveDB failed", e);
@@ -364,8 +426,13 @@ export function saveDB() {
 }
 
 export function resetDB() {
-  if (typeof window !== "undefined") localStorage.removeItem(NS);
-  cache = null;
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(NS);
+    clientCache = null;
+  } else {
+    globalForDB.aw_server_db = seed();
+    saveToServerDisk(globalForDB.aw_server_db);
+  }
 }
 
 export function currentUserFromDB(): User | null {
@@ -458,14 +525,14 @@ export function relatedProducts(p: Product): Product[] {
 }
 export function upsertProduct(p: Product) {
   const db = getDB();
-  const i = db.products.findIndex((x) => x.id === p.id);
-  if (i >= 0) db.products[i] = p;
-  else db.products.push(p);
+  const i = db.products.findIndex((x) => x.id === p.id || x.slug === p.slug);
+  if (i >= 0) db.products[i] = { ...db.products[i], ...p };
+  else db.products.unshift(p);
   saveDB();
 }
 export function deleteProduct(id: string) {
   const db = getDB();
-  db.products = db.products.filter((p) => p.id !== id);
+  db.products = db.products.filter((p) => p.id !== id && p.slug !== id);
   saveDB();
 }
 
