@@ -14,6 +14,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@insforge/sdk": "^1.5.2",
     "@prisma/client": "^5.22.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",

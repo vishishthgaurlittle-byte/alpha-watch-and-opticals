@@ -1,13 +1,14 @@
 "use client";
 import { create } from "zustand";
 import type { User } from "@/lib/types";
+import { insforge } from "@/lib/insforge";
 
 interface AuthState {
   user: User | null;
   hydrated: boolean;
   register: (d: { name: string; email: string; phone?: string; password: string }) => Promise<string | null>;
   login: (email: string, password: string) => Promise<string | null>;
-  googleLogin: (p: { email: string; name: string; picture?: string }) => void;
+  googleLogin: (p: { email: string; name: string; picture?: string; id?: string }) => void;
   logout: () => Promise<void>;
   hydrate: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -32,6 +33,33 @@ export const useAuth = create<AuthState>((set, get) => ({
     } catch {
       // ignore
     }
+
+    try {
+      if (typeof window !== "undefined") {
+        const { data } = await insforge.auth.getCurrentUser();
+        if (data?.user) {
+          const u = data.user;
+          const email = u.email || "";
+          const name = (u as any).profile?.name || (u as any).name || (email ? email.split("@")[0] : "Customer");
+          const picture = (u as any).profile?.avatar_url || (u as any).avatar_url || "";
+          set({
+            user: {
+              id: u.id || "usr-" + Date.now().toString(36),
+              name,
+              email,
+              role: (u as any).role || "customer",
+              avatar: picture || null,
+              created_at: new Date().toISOString()
+            } as any,
+            hydrated: true
+          });
+          return;
+        }
+      }
+    } catch {
+      // ignore
+    }
+
     set({ user: null, hydrated: true });
   },
 
@@ -88,10 +116,10 @@ export const useAuth = create<AuthState>((set, get) => ({
   },
 
   googleLogin: (p) => {
-    // Optimistic user update for Google OAuth callback flow
+    // Map InsForge user into Zustand auth store
     set({
       user: {
-        id: "usr-" + Date.now().toString(36),
+        id: p.id || "usr-" + Date.now().toString(36),
         name: p.name,
         email: p.email,
         role: "customer",
@@ -106,6 +134,14 @@ export const useAuth = create<AuthState>((set, get) => ({
       await fetch("/api/auth/logout", { method: "POST" });
     } catch {
       // ignore
+    }
+    try {
+      await insforge.auth.signOut();
+    } catch {
+      // ignore
+    }
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("awopticals_session");
     }
     set({ user: null });
   },

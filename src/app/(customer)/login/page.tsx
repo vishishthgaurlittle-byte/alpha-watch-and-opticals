@@ -3,9 +3,9 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { insforge } from "@/lib/insforge";
 import { useAuth } from "@/store/auth";
 import { mergeGuestCart } from "@/store/cart";
-import { signInWithGoogle } from "@/utils/auth";
 import { toast } from "@/store/ui";
 
 function LoginContent() {
@@ -30,27 +30,32 @@ function LoginContent() {
   const handleGoogleLogin = async () => {
     setErr("");
     setGoogleLoading(true);
+    const targetNext = params.get("next") || "/account";
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("aw_oauth_next", targetNext.startsWith("/") ? targetNext : "/account");
+    }
+
     try {
-      const result = await signInWithGoogle();
-      if (result.success && result.user) {
-        useAuth.getState().googleLogin({
-          email: result.user.email || "",
-          name: result.user.displayName || (result.user.email ? result.user.email.split("@")[0] : "Customer"),
-          picture: result.user.photoURL || ""
-        });
-        const currentUser = useAuth.getState().user;
-        if (currentUser) {
-          mergeGuestCart(currentUser.id);
-          toast(`Welcome, ${currentUser.name}! Signed in with Google ✓`);
-          router.push(next || (currentUser.role === "admin" ? "/admin" : "/account"));
-        }
-      } else if (result.error) {
-        setErr(result.error);
+      const { error } = await insforge.auth.signInWithOAuth("google", {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        additionalParams: { prompt: "select_account" }
+      });
+
+      if (error) {
+        setGoogleLoading(false);
+        const isNotConfigured =
+          error.message?.toLowerCase().includes("not enabled") ||
+          error.message?.toLowerCase().includes("not configured") ||
+          error.message?.toLowerCase().includes("provider");
+        setErr(
+          isNotConfigured
+            ? "Google is not enabled on InsForge. Open InsForge dashboard → Auth Methods → Google, paste Client ID/Secret, add redirect URLs."
+            : (error.message || "Google sign-in failed. Check InsForge Google provider is enabled.")
+        );
       }
     } catch (e: any) {
-      setErr(e?.message || "Google Sign-In failed. Please try again.");
-    } finally {
       setGoogleLoading(false);
+      setErr(e?.message || "Google Sign-In failed. Please try again.");
     }
   };
 

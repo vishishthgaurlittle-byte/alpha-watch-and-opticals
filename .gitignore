@@ -33,6 +33,7 @@ prisma/*.db
 prisma/*.db-journal
 test_suite.js
 theme.test.js
+insforge.test.js
 
 # typescript
 *.tsbuildinfo
