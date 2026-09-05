@@ -55,11 +55,13 @@ export async function PATCH(req: NextRequest) {
           // ignore if db unmounted
         }
       }
-      return NextResponse.json({
+      const res = NextResponse.json({
         success: true,
         personalTheme: null,
         message: "Theme reset to store default"
       });
+      res.cookies.delete("aw_theme");
+      return res;
     }
 
     // 2. Validate requested themeId
@@ -83,11 +85,17 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       success: true,
       personalTheme: themeId,
       message: "Personal theme preference updated"
     });
+    res.cookies.set("aw_theme", themeId, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax"
+    });
+    return res;
   } catch (err: any) {
     console.error("PATCH /api/theme error:", err);
     return NextResponse.json({ error: "Failed to update theme" }, { status: 500 });

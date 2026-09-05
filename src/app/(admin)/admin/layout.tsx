@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/store/auth";
-import { currentUserFromDB } from "@/lib/db";
 
 const adminNav = [
   { id: "/admin", label: "Dashboard", icon: "📊" },
@@ -24,9 +23,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const logout = useAuth((s) => s.logout);
   const [showLogin, setShowLogin] = useState(false);
 
-  // Active admin check either from Zustand or synchronous localStorage
-  const currentAdmin = user?.role === "admin" ? user : (typeof window !== "undefined" ? currentUserFromDB() : null);
-  const isAdmin = currentAdmin?.role === "admin";
+  // Active admin check
+  const isAdmin = user?.role === "admin";
 
   useEffect(() => {
     if (!hydrated) return;

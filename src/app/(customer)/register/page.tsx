@@ -82,7 +82,7 @@ function RegisterContent() {
         mergeGuestCart(u.id);
       }
       toast("Account created successfully ✓");
-      router.push(next || "/account");
+      window.location.href = next || "/account";
     } catch (error: any) {
       setErr(error?.message || "Account creation failed");
     } finally {

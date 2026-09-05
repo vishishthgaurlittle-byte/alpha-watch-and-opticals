@@ -308,18 +308,8 @@ const COUPONS: Coupon[] = [
 
 function seed(): DBShape {
   const now = new Date().toISOString();
-  const admin: User = {
-    id: "u-admin",
-    name: "Mohd. Shoeb",
-    email: process.env.ADMIN_SEED_EMAIL || "admin@alpha.com",
-    phone: "9044477735",
-    password: hashPw(process.env.ADMIN_SEED_PASSWORD || "AlphaAdminSecure2026!"),
-    role: "admin",
-    provider: "email",
-    created_at: now
-  };
   return {
-    users: [admin],
+    users: [],
     addresses: [],
     categories: CATEGORIES,
     products: PRODUCTS,
@@ -346,13 +336,6 @@ function seed(): DBShape {
     wishlist: [],
     settings: {}
   };
-}
-
-// Simple hash for the demo (a real backend stores proper bcrypt hashes)
-export function hashPw(pw: string): string {
-  let h = 5381;
-  for (let i = 0; i < pw.length; i++) h = (h * 33) ^ pw.charCodeAt(i);
-  return "sha_" + (h >>> 0).toString(16);
 }
 
 let cache: DBShape | null = null;
@@ -393,42 +376,6 @@ export function currentUserFromDB(): User | null {
 }
 
 // ---------- Auth ----------
-export function registerUser(data: {
-  name: string;
-  email: string;
-  phone: string;
-  password: string;
-}): { user?: User; error?: string } {
-  const db = getDB();
-  const email = data.email.trim().toLowerCase();
-  if (db.users.some((u) => u.email === email))
-    return { error: "An account with this email already exists." };
-  const user: User = {
-    id: "u-" + uid(),
-    name: data.name.trim(),
-    email,
-    phone: data.phone.trim(),
-    password: hashPw(data.password),
-    role: "customer",
-    provider: "email",
-    created_at: new Date().toISOString()
-  };
-  db.users.push(user);
-  db.carts[user.id] = db.carts.guest || [];
-  db.carts.guest = [];
-  saveDB();
-  return { user };
-}
-
-export function loginEmail(email: string, password: string): { user?: User; error?: string } {
-  const db = getDB();
-  const u = db.users.find((x) => x.email === email.trim().toLowerCase());
-  if (!u) return { error: "No account found with this email." };
-  if (u.blocked) return { error: "This account has been blocked. Contact the store." };
-  if (u.password !== hashPw(password)) return { error: "Incorrect password." };
-  return { user: u };
-}
-
 export function loginGoogle(profile: {
   email: string;
   name: string;

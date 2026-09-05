@@ -87,6 +87,15 @@ const docs: Record<string, { title: string; content: string[] }> = {
   }
 };
 
+export async function generateMetadata({ params }: { params: { slug: string } }) {
+  const doc = docs[params.slug];
+  if (!doc) return { title: "Legal Notice" };
+  return {
+    title: doc.title,
+    description: `${doc.title} for ${SITE.name}, Chowdhary Complex, Raebareli.`
+  };
+}
+
 export default function LegalPage({ params }: { params: { slug: string } }) {
   const doc = docs[params.slug];
   if (!doc) notFound();

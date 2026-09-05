@@ -22,7 +22,7 @@ export const useAuth = create<AuthState>((set, get) => ({
 
   hydrate: async () => {
     try {
-      const res = await fetch("/api/auth/me");
+      const res = await fetch("/api/auth/me", { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
         if (data.authenticated && data.user) {
@@ -65,7 +65,7 @@ export const useAuth = create<AuthState>((set, get) => ({
 
   refresh: async () => {
     try {
-      const res = await fetch("/api/auth/me");
+      const res = await fetch("/api/auth/me", { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
         if (data.authenticated && data.user) {
@@ -84,6 +84,7 @@ export const useAuth = create<AuthState>((set, get) => ({
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(d)
       });
       const data = await res.json();
@@ -102,6 +103,7 @@ export const useAuth = create<AuthState>((set, get) => ({
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email, password })
       });
       const data = await res.json();
@@ -131,7 +133,7 @@ export const useAuth = create<AuthState>((set, get) => ({
 
   logout: async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     } catch {
       // ignore
     }
