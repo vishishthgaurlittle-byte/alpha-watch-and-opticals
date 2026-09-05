@@ -1,19 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { getFallbackOrder } from "@/lib/orderStore";
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getCurrentUser();
+    let order: any = null;
 
-    const order = await prisma.order.findFirst({
-      where: {
-        OR: [{ id: params.id }, { orderNumber: params.id }]
-      },
-      include: {
-        items: true
-      }
-    });
+    try {
+      order = await prisma.order.findFirst({
+        where: {
+          OR: [{ id: params.id }, { orderNumber: params.id }]
+        },
+        include: {
+          items: true
+        }
+      });
+    } catch (dbErr) {
+      console.warn("Prisma order lookup failed, checking fallback cache:", dbErr);
+    }
+
+    if (!order) {
+      order = getFallbackOrder(params.id);
+    }
 
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
