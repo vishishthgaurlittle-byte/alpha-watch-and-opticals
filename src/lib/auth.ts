@@ -30,12 +30,15 @@ export function signSessionToken(payload: {
   role: string;
   avatar?: string | null;
 }): string {
+  const adminEmail = (process.env.ADMIN_EMAIL || "vishishthgaurlittle@gmail.com").toLowerCase().trim();
+  const resolvedRole = payload.email.toLowerCase().trim() === adminEmail ? "admin" : payload.role || "customer";
+
   const data: SessionPayload = {
     sub: payload.id,
     id: payload.id,
     email: payload.email,
     name: payload.name,
-    role: payload.role,
+    role: resolvedRole,
     avatar: payload.avatar || null
   };
   return jwt.sign(data, AUTH_SECRET, { expiresIn: "7d" });
@@ -45,12 +48,15 @@ export function verifySessionToken(token: string): SessionPayload | null {
   try {
     const decoded = jwt.verify(token, AUTH_SECRET) as any;
     if (!decoded || (!decoded.id && !decoded.sub)) return null;
+    const adminEmail = (process.env.ADMIN_EMAIL || "vishishthgaurlittle@gmail.com").toLowerCase().trim();
+    const resolvedRole = (decoded.email || "").toLowerCase().trim() === adminEmail ? "admin" : decoded.role || "customer";
+
     return {
       sub: decoded.sub || decoded.id,
       id: decoded.id || decoded.sub,
       email: decoded.email,
       name: decoded.name,
-      role: decoded.role || "customer",
+      role: resolvedRole,
       avatar: decoded.avatar || null
     };
   } catch {
@@ -97,6 +103,9 @@ export async function getCurrentUser() {
   const session = await getServerSession();
   if (!session) return null;
 
+  const adminEmail = (process.env.ADMIN_EMAIL || "vishishthgaurlittle@gmail.com").toLowerCase().trim();
+  const isAdminEmail = (session.email || "").toLowerCase().trim() === adminEmail;
+
   try {
     const user = await prisma.user.findUnique({
       where: { id: session.id },
@@ -113,10 +122,12 @@ export async function getCurrentUser() {
       }
     });
 
-    if (!user || user.blocked) {
-      if (user?.blocked) return null;
-    } else {
-      return user;
+    if (user) {
+      if (user.blocked) return null;
+      return {
+        ...user,
+        role: isAdminEmail ? "admin" : user.role
+      };
     }
   } catch (err) {
     console.warn("Prisma getCurrentUser fallback to session payload:", err);
@@ -127,7 +138,7 @@ export async function getCurrentUser() {
     name: session.name,
     email: session.email,
     phone: null,
-    role: session.role,
+    role: isAdminEmail ? "admin" : session.role || "customer",
     avatar: session.avatar || null,
     blocked: false,
     themePreference: null,

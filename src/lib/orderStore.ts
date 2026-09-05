@@ -48,6 +48,41 @@ export function getFallbackOrder(idOrNumber: string): StoredOrder | undefined {
   return globalOrderCache.fallbackOrders?.get(idOrNumber);
 }
 
+export function getAllFallbackOrders(): StoredOrder[] {
+  const list: StoredOrder[] = [];
+  const seen = new Set<string>();
+  if (globalOrderCache.fallbackOrders) {
+    globalOrderCache.fallbackOrders.forEach((o) => {
+      if (!seen.has(o.id)) {
+        seen.add(o.id);
+        list.push(o);
+      }
+    });
+  }
+  return list.sort((a, b) => (new Date(b.createdAt).getTime() || 0) - (new Date(a.createdAt).getTime() || 0));
+}
+
+export function updateFallbackOrder(idOrNumber: string, patch: Partial<StoredOrder>): StoredOrder | null {
+  const existing = globalOrderCache.fallbackOrders?.get(idOrNumber);
+  if (!existing) return null;
+  const updated = {
+    ...existing,
+    ...patch,
+    updatedAt: new Date().toISOString()
+  };
+  globalOrderCache.fallbackOrders?.set(updated.id, updated);
+  globalOrderCache.fallbackOrders?.set(updated.orderNumber, updated);
+  return updated;
+}
+
+export function deleteFallbackOrder(idOrNumber: string): boolean {
+  const existing = globalOrderCache.fallbackOrders?.get(idOrNumber);
+  if (!existing) return false;
+  globalOrderCache.fallbackOrders?.delete(existing.id);
+  globalOrderCache.fallbackOrders?.delete(existing.orderNumber);
+  return true;
+}
+
 export function getFallbackOrdersByUser(userIdentifier: string): StoredOrder[] {
   const result: StoredOrder[] = [];
   const seen = new Set<string>();
