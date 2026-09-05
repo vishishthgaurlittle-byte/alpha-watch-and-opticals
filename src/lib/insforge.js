@@ -1,6 +1,6 @@
 import { initializeApp, getAuth, GoogleAuthProvider, signInWithPopup } from '@insforge/auth';
 
-export const insforgeConfig = {
+const insforgeConfig = {
   apiKey: process.env.NEXT_PUBLIC_INSFORGE_API_KEY || "ik_2d0ab4978c75f9e7f7e0e24e190ef1d6",
   authDomain: process.env.NEXT_PUBLIC_INSFORGE_AUTH_DOMAIN || "4bnre66i.ap-southeast.insforge.app",
   projectId: process.env.NEXT_PUBLIC_INSFORGE_PROJECT_ID || "56db6791-86fa-4c7f-9142-29b0211d47c3",
@@ -11,17 +11,3 @@ const app = initializeApp(insforgeConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 export { signInWithPopup, GoogleAuthProvider };
-
-export const INFORGE = {
-  projectId: insforgeConfig.projectId,
-  apiKey: insforgeConfig.apiKey,
-  url: `https://${insforgeConfig.authDomain}`,
-  version: "v2.3.1"
-};
-
-export const isInsforgeLive = Boolean(insforgeConfig.apiKey);
-
-export function getGoogleOAuthUrl(nextUrl: string = "/account"): string {
-  const redirectUri = typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : "/auth/callback";
-  return `https://${insforgeConfig.authDomain}/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(nextUrl)}`;
-}

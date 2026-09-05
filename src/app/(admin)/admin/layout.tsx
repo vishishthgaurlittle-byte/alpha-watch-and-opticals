@@ -111,8 +111,7 @@ function AdminGate({ showLogin, onSuccess }: { showLogin: boolean; onSuccess: ()
           <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="input-premium bg-white/10 border-white/20 text-ivory placeholder:text-ivory/40" />
           <button className="btn-gold w-full py-3.5 rounded-full font-semibold">Login</button>
         </div>
-        <p className="text-center text-xs text-ivory/40 mt-5">Demo: admin@alpha.com / admin123</p>
-        <Link href="/" className="block text-center text-xs text-gold underline mt-3">← Back to store</Link>
+        <Link href="/" className="block text-center text-xs text-gold underline mt-4">← Back to store</Link>
       </form>
     </div>
   );

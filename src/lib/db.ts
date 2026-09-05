@@ -310,26 +310,16 @@ function seed(): DBShape {
   const now = new Date().toISOString();
   const admin: User = {
     id: "u-admin",
-    name: "Store Owner",
+    name: "Mohd. Shoeb",
     email: process.env.ADMIN_SEED_EMAIL || "admin@alpha.com",
-    phone: "9999999999",
+    phone: "9044477735",
     password: hashPw(process.env.ADMIN_SEED_PASSWORD || "admin123"),
     role: "admin",
     provider: "email",
     created_at: now
   };
-  const demoUser: User = {
-    id: "u-demo",
-    name: "Demo Customer",
-    email: "demo@customer.com",
-    phone: "8888888888",
-    password: hashPw("demo123"),
-    role: "customer",
-    provider: "email",
-    created_at: now
-  };
   return {
-    users: [admin, demoUser],
+    users: [admin],
     addresses: [],
     categories: CATEGORIES,
     products: PRODUCTS,
@@ -337,12 +327,12 @@ function seed(): DBShape {
     reviews: [
       {
         id: "rev-1",
-        user_id: "u-demo",
-        user_name: "Demo Customer",
+        user_id: "u-verified-1",
+        user_name: "Verified Customer",
         product_id: "p-chrono",
         rating: 5,
         title: "Stunning piece",
-        comment: "Beautiful finish and the automatic movement is very smooth. Worth every rupee.",
+        comment: "Beautiful finish and the movement is very smooth. 100% genuine product with official warranty.",
         status: "approved",
         created_at: now
       }
