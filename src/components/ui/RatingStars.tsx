@@ -5,9 +5,9 @@ export default function RatingStars({ value, size = 14 }: { value: number; size?
         const fill = Math.min(Math.max(value - i, 0), 1);
         return (
           <span key={i} className="relative inline-block" style={{ width: size, height: size }}>
-            <Star size={size} color="#d7ccb8" />
+            <Star size={size} color="var(--text-muted, #d7ccb8)" />
             <span className="absolute inset-0 overflow-hidden" style={{ width: `${fill * 100}%` }}>
-              <Star size={size} color="#C6A15B" />
+              <Star size={size} color="var(--accent, #c6a667)" />
             </span>
           </span>
         );

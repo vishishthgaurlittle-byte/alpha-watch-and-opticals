@@ -1,70 +1,123 @@
 "use client";
-import { useState } from "react";
-import { getAllUsers, getOrdersByUser, setUserBlocked, setUserRole } from "@/lib/db";
-import { formatINR, dateFmt } from "@/lib/site";
-import { useAuth } from "@/store/auth";
+import { useEffect, useState } from "react";
+import { dateFmt } from "@/lib/site";
+import { toast } from "@/store/ui";
 
 export default function AdminCustomers() {
-  const [, setGen] = useState(0);
-  const me = useAuth((s) => s.user);
-  const adminSetBlocked = useAuth((s) => s.adminSetBlocked);
-  const adminSetRole = useAuth((s) => s.adminSetRole);
-  const [selected, setSelected] = useState<string | null>(null);
-  const users = getAllUsers().filter((u) => u.role === "customer");
-  const sel = users.find((u) => u.id === selected);
-  const selOrders = sel ? getOrdersByUser(sel.id) : [];
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch("/api/admin/users");
+      const data = await res.json();
+      if (res.ok) {
+        setUsers(data.users || []);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const toggleBlock = async (id: string, currentBlocked: boolean) => {
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blocked: !currentBlocked })
+      });
+      if (res.ok) {
+        toast(!currentBlocked ? "Customer account suspended" : "Customer account reactivated");
+        await fetchUsers();
+      }
+    } catch {
+      toast("Failed to update status");
+    }
+  };
+
+  const toggleRole = async (id: string, currentRole: string) => {
+    const newRole = currentRole === "admin" ? "customer" : "admin";
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: newRole })
+      });
+      if (res.ok) {
+        toast(`Role changed to ${newRole}`);
+        await fetchUsers();
+      }
+    } catch {
+      toast("Failed to update role");
+    }
+  };
 
   return (
     <div>
-      <h1 className="font-serif text-2xl md:text-3xl font-bold text-navy mb-1">Customers</h1>
-      <p className="text-navy/50 text-sm mb-6">{users.length} customers</p>
+      <h1 className="font-serif text-2xl md:text-3xl font-bold text-navy mb-1">Customers &amp; Accounts</h1>
+      <p className="text-navy/50 text-sm mb-6">{users.length} registered accounts</p>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-navy/5">
-          <div className="space-y-2">
-            {users.length === 0 && <p className="text-navy/50 text-sm text-center py-8">No customers yet.</p>}
-            {users.map((u) => (
-              <button key={u.id} onClick={() => setSelected(u.id)} className={`w-full text-left border rounded-xl p-3 transition ${selected === u.id ? "border-gold bg-gold/5" : "border-navy/10 hover:border-gold/50"}`}>
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-navy text-ivory flex items-center justify-center font-bold">{u.name[0]?.toUpperCase()}</div>
-                  <div className="flex-1">
-                    <div className="font-medium text-navy text-sm">{u.name}</div>
-                    <div className="text-xs text-navy/50">{u.email || u.phone}</div>
-                  </div>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${u.blocked ? "bg-red-50 text-red-600" : "bg-emerald/10 text-emerald"}`}>{u.blocked ? "Blocked" : "Active"}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-5 border border-navy/5 h-fit">
-          {!sel ? <p className="text-navy/50 text-sm text-center py-16">Select a customer</p> : (
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-full bg-navy text-ivory flex items-center justify-center text-xl font-bold">{sel.name[0]?.toUpperCase()}</div>
-                <div>
-                  <div className="font-medium text-navy">{sel.name}</div>
-                  <div className="text-xs text-navy/50">{sel.email || "—"} · {sel.phone || "—"}</div>
-                </div>
-              </div>
-              <div className="text-xs text-navy/60 mb-2">Joined {dateFmt(sel.created_at)} · via {sel.provider}</div>
-              <div className="bg-navy/5 rounded-xl p-3 mb-4 text-sm text-navy">
-                Total orders: <b>{selOrders.length}</b><br />Total spent: <b>{formatINR(selOrders.filter((o) => o.payment_status === "approved").reduce((a, o) => a + o.total, 0))}</b>
-              </div>
-              <div className="space-y-2">
-                <button onClick={() => { adminSetBlocked(sel.id, !sel.blocked); setGen((g) => g + 1); }} className={`w-full py-2.5 rounded-full text-sm font-semibold border ${sel.blocked ? "border-emerald text-emerald hover:bg-emerald/5" : "border-red-300 text-red-600 hover:bg-red-50"}`}>
-                  {sel.blocked ? "Unblock Customer" : "Block Customer"}
-                </button>
-                {me?.id !== sel.id && (
-                  <button onClick={() => { adminSetRole(sel.id, "admin"); setGen((g) => g + 1); }} className="w-full py-2.5 rounded-full text-sm font-semibold border border-gold text-gold-700 hover:bg-gold/5">
-                    Promote to Admin
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+      <div className="bg-white rounded-2xl p-5 border border-navy/5 shadow-sm overflow-x-auto">
+        {loading ? (
+          <div className="py-12 text-center text-navy/50 text-sm">Loading users from database...</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-navy/50 text-left border-b border-navy/10">
+                <th className="py-2 font-medium">Customer</th>
+                <th className="py-2 font-medium">Phone</th>
+                <th className="py-2 font-medium">Role</th>
+                <th className="py-2 font-medium">Joined</th>
+                <th className="py-2 font-medium">Orders</th>
+                <th className="py-2 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((u) => (
+                <tr key={u.id} className="border-b border-navy/5">
+                  <td className="py-3">
+                    <div className="font-semibold text-navy">{u.name}</div>
+                    <div className="text-xs text-navy/40">{u.email}</div>
+                  </td>
+                  <td className="py-3 text-navy/70">{u.phone || "—"}</td>
+                  <td className="py-3">
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-xs font-semibold capitalize ${
+                        u.role === "admin" ? "bg-gold/15 text-gold-700" : "bg-navy/5 text-navy"
+                      }`}
+                    >
+                      {u.role}
+                    </span>
+                  </td>
+                  <td className="py-3 text-navy/70">{dateFmt(u.createdAt)}</td>
+                  <td className="py-3 font-semibold text-navy">{u._count?.orders || 0}</td>
+                  <td className="py-3 text-right space-x-2 whitespace-nowrap">
+                    <button
+                      onClick={() => toggleRole(u.id, u.role)}
+                      className="text-xs text-navy hover:text-gold-700 font-medium underline"
+                    >
+                      {u.role === "admin" ? "Make Customer" : "Make Admin"}
+                    </button>
+                    <button
+                      onClick={() => toggleBlock(u.id, u.blocked)}
+                      className={`text-xs font-medium ${
+                        u.blocked ? "text-emerald hover:underline" : "text-red-500 hover:underline"
+                      }`}
+                    >
+                      {u.blocked ? "Unblock" : "Block"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

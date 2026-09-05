@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/store/auth";
 import { useCart } from "@/store/cart";
 import { useUI } from "@/store/ui";
+import { ThemeProvider } from "@/theme/ThemeProvider";
 import LoadingScreen from "@/components/LoadingScreen";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -18,7 +19,6 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   const user = useAuth((s) => s.user);
   const hydrated = useAuth((s) => s.hydrated);
   const load = useCart((s) => s.load);
-  const loading = useUI((s) => s.loading);
   const pathname = usePathname();
   const [showLoad, setShowLoad] = useState(false);
 
@@ -33,15 +33,19 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     load(user ? user.id : "guest");
   }, [user, hydrated, load]);
 
-  // show the premium loading screen only once per browser session (first visit)
+  // show loading screen only once per browser session
   const isAdmin = pathname?.startsWith("/admin");
   useEffect(() => {
     if (isAdmin) return;
     let seen = false;
-    try { seen = sessionStorage.getItem("aw_loading_seen") === "1"; } catch {}
+    try {
+      seen = sessionStorage.getItem("aw_loading_seen") === "1";
+    } catch {}
     if (!seen) {
       setShowLoad(true);
-      try { sessionStorage.setItem("aw_loading_seen", "1"); } catch {}
+      try {
+        sessionStorage.setItem("aw_loading_seen", "1");
+      } catch {}
       const t = setTimeout(() => setShowLoad(false), 1200);
       return () => clearTimeout(t);
     }
@@ -53,7 +57,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   return (
-    <>
+    <ThemeProvider>
       <PwaRegister />
       {showLoad && !isAdmin && <LoadingScreen />}
       <Header />
@@ -62,6 +66,6 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       <MobileNav />
       <CartDrawer />
       <Toast />
-    </>
+    </ThemeProvider>
   );
 }

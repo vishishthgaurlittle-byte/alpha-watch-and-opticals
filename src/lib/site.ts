@@ -1,21 +1,32 @@
-// Shop constants & real store details
+// Canonical Site & Store Constants
+
+export const CANONICAL_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL || "https://alpha-watch-and-opticals.vercel.app"
+).replace(/\/$/, "");
+
 export const SITE = {
   name: "Alpha Watch & Opticals",
   shortName: "Alpha",
   owner: "Mohd. Shoeb",
   tagline: "Timeless Watches. Perfect Vision.",
+  url: CANONICAL_URL,
   address: "Chowdhary Complex, Degree College Chauraha, Raebareli, Uttar Pradesh 229001",
-  phone: "+91 90444 77735",
+  phone: process.env.SHOP_PHONE || "+91 90444 77735",
   phoneHref: "+919044477735",
-  whatsapp: "919044477735",
-  email: "alpha.watch.opticals@gmail.com",
+  whatsapp: process.env.SHOP_WHATSAPP || "919044477735",
+  whatsappLink: "https://wa.me/919044477735",
+  email: process.env.SHOP_EMAIL || "alpha.watch.opticals@gmail.com",
   timings: "Monday – Sunday, 10:00 AM – 9:00 PM",
-  upiId: "alphawatch@upi",
+  upiId: process.env.SHOP_UPI_ID || "",
+  legalEntity: process.env.LEGAL_ENTITY || "Alpha Watch & Opticals",
+  gstin: process.env.GSTIN || "",
+  grievanceName: process.env.GRIEVANCE_NAME || "Mohd. Shoeb",
+  grievanceEmail: process.env.GRIEVANCE_EMAIL || "alpha.watch.opticals@gmail.com",
   justdial:
     "https://www.justdial.com/Raebareli/Alpha-Watch-Opticals-Near-Good-Morning-Bakery-Indira-Nagar/9999PX535-X535-181015003007-B3W8_BZDET",
   mapEmbed:
-    "https://www.google.com/maps?q=Chowdhary+Complex,+Degree+College+Chauraha,+Raebareli,+Uttar+Pradesh&output=embed",
-  mapLink: "https://maps.google.com/?q=Chowdhary+Complex,+Degree+College+Chauraha,+Raebareli,+Uttar+Pradesh",
+    "https://www.google.com/maps?q=Chowdhary+Complex,+Degree+College+Chauraha,+Raebareli,+Uttar+Pradesh+229001&output=embed",
+  mapLink: "https://maps.google.com/?q=Chowdhary+Complex,+Degree+College+Chauraha,+Raebareli,+Uttar+Pradesh+229001",
   brands: ["Titan", "Casio", "Timex", "Fastrack", "Sonata", "Maxima", "Titan Eyewear", "SKINN Perfumes", "Fire-Boltt"],
   instagram: "#",
   currency: "₹",
@@ -44,8 +55,8 @@ export const formatINR = (n: number) =>
 export const discountPct = (price: number, mrp: number) =>
   mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
 
-export const dateFmt = (iso: string) =>
+export const dateFmt = (iso: string | Date) =>
   new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
-export const timeFmt = (iso: string) =>
+export const timeFmt = (iso: string | Date) =>
   new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });

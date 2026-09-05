@@ -1,0 +1,32 @@
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
+
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const user = await getCurrentUser();
+
+    const order = await prisma.order.findFirst({
+      where: {
+        OR: [{ id: params.id }, { orderNumber: params.id }]
+      },
+      include: {
+        items: true
+      }
+    });
+
+    if (!order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    // If order belongs to a user and current requester is a different non-admin user
+    if (order.userId && user && user.role !== "admin" && order.userId !== user.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    return NextResponse.json({ order });
+  } catch (err: any) {
+    console.error("Order fetch error:", err);
+    return NextResponse.json({ error: "Failed to fetch order" }, { status: 500 });
+  }
+}

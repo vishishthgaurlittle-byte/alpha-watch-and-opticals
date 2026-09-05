@@ -1,0 +1,216 @@
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import prisma from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
+import { sendShopNotification } from "@/lib/mailer";
+
+const orderItemSchema = z.object({
+  productId: z.string().min(1),
+  quantity: z.number().int().min(1).max(10),
+  variant: z.string().optional()
+});
+
+const createOrderSchema = z.object({
+  name: z.string().min(2, "Name is required"),
+  email: z.string().email("Valid email is required"),
+  phone: z.string().regex(/^[6-9]\d{9}$/, "Valid 10-digit Indian phone is required"),
+  deliveryMethod: z.enum(["pickup", "delivery"]).default("pickup"),
+  address: z.object({
+    line1: z.string().min(3),
+    line2: z.string().optional(),
+    city: z.string().default("Raebareli"),
+    state: z.string().default("Uttar Pradesh"),
+    pincode: z.string().min(6)
+  }).optional(),
+  items: z.array(orderItemSchema).min(1, "Order must contain at least one item"),
+  couponCode: z.string().optional(),
+  notes: z.string().optional()
+});
+
+export async function POST(req: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+    const body = await req.json();
+    const parsed = createOrderSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message || "Invalid order details" },
+        { status: 400 }
+      );
+    }
+
+    const data = parsed.data;
+
+    // 1. Fetch products from database
+    const productIds = data.items.map((i) => i.productId);
+    const dbProducts = await prisma.product.findMany({
+      where: {
+        id: { in: productIds },
+        status: "published"
+      }
+    });
+
+    const productMap = new Map(dbProducts.map((p) => [p.id, p]));
+
+    // Validate that all items exist and are in stock
+    let subtotal = 0;
+    const itemsToCreate: Array<{
+      productId: string;
+      name: string;
+      image: string;
+      variant: string | null;
+      price: number;
+      quantity: number;
+      total: number;
+    }> = [];
+
+    for (const item of data.items) {
+      const prod = productMap.get(item.productId);
+      if (!prod) {
+        return NextResponse.json(
+          { error: `One or more products in your cart are no longer available.` },
+          { status: 400 }
+        );
+      }
+
+      if (prod.stock < item.quantity) {
+        return NextResponse.json(
+          { error: `Insufficient stock for "${prod.name}". Only ${prod.stock} available.` },
+          { status: 400 }
+        );
+      }
+
+      let parsedImages: string[] = [];
+      try {
+        parsedImages = JSON.parse(prod.imagesJson);
+      } catch {
+        parsedImages = ["/images/products/mens-chrono-gold.jpg"];
+      }
+
+      const itemTotal = prod.price * item.quantity;
+      subtotal += itemTotal;
+
+      itemsToCreate.push({
+        productId: prod.id,
+        name: prod.name,
+        image: parsedImages[0] || "/images/products/mens-chrono-gold.jpg",
+        variant: item.variant || null,
+        price: prod.price,
+        quantity: item.quantity,
+        total: itemTotal
+      });
+    }
+
+    // 2. Server-side coupon recalculation
+    let discount = 0;
+    let validatedCoupon = null;
+
+    if (data.couponCode) {
+      validatedCoupon = await prisma.coupon.findUnique({
+        where: { code: data.couponCode.toUpperCase().trim() }
+      });
+
+      if (validatedCoupon && (!validatedCoupon.expiresAt || new Date() <= validatedCoupon.expiresAt) && validatedCoupon.used < validatedCoupon.usageLimit && subtotal >= validatedCoupon.minCart) {
+        if (validatedCoupon.type === "percent") {
+          discount = (subtotal * validatedCoupon.value) / 100;
+          if (validatedCoupon.maxDiscount && discount > validatedCoupon.maxDiscount) {
+            discount = validatedCoupon.maxDiscount;
+          }
+        } else {
+          discount = validatedCoupon.value;
+        }
+        discount = Math.min(discount, subtotal);
+      }
+    }
+
+    const shipping = data.deliveryMethod === "delivery" && subtotal < 2000 ? 100 : 0;
+    const finalTotal = Math.max(0, subtotal - discount + shipping);
+
+    // 3. Generate unique human-readable Order Number
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const orderNumber = `AW-${new Date().getFullYear()}-${randomSuffix}`;
+
+    // 4. Create order and decrement stock in a transaction
+    const createdOrder = await prisma.$transaction(async (tx) => {
+      // Create order
+      const order = await tx.order.create({
+        data: {
+          orderNumber,
+          userId: user?.id || null,
+          userEmail: data.email.toLowerCase().trim(),
+          userName: data.name.trim(),
+          userPhone: data.phone.trim(),
+          status: "pending",
+          paymentStatus: "pending",
+          deliveryMethod: data.deliveryMethod,
+          subtotal,
+          discount,
+          shipping,
+          total: finalTotal,
+          couponCode: validatedCoupon ? validatedCoupon.code : null,
+          shippingAddress: data.address ? JSON.stringify(data.address) : null,
+          notes: data.notes || null,
+          items: {
+            create: itemsToCreate
+          }
+        },
+        include: {
+          items: true
+        }
+      });
+
+      // Decrement product stocks
+      for (const item of data.items) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            stock: {
+              decrement: item.quantity
+            }
+          }
+        });
+      }
+
+      // Increment coupon usage
+      if (validatedCoupon) {
+        await tx.coupon.update({
+          where: { id: validatedCoupon.id },
+          data: {
+            used: {
+              increment: 1
+            }
+          }
+        });
+      }
+
+      return order;
+    });
+
+    // Send order alert email to store
+    await sendShopNotification(
+      `New Order Placed: ${orderNumber} - ₹${finalTotal.toLocaleString("en-IN")}`,
+      `<h3>New Order Received</h3>
+       <p><strong>Order Number:</strong> ${orderNumber}</p>
+       <p><strong>Customer:</strong> ${data.name} (${data.phone})</p>
+       <p><strong>Email:</strong> ${data.email}</p>
+       <p><strong>Delivery Method:</strong> ${data.deliveryMethod === "pickup" ? "In-Store Pickup (Degree College Chauraha)" : "Home Delivery"}</p>
+       <p><strong>Total Amount:</strong> ₹${finalTotal.toLocaleString("en-IN")}</p>
+       <p><strong>Items:</strong></p>
+       <ul>
+         ${itemsToCreate.map((i) => `<li>${i.name} (x${i.quantity}) - ₹${i.total}</li>`).join("")}
+       </ul>`
+    );
+
+    return NextResponse.json({
+      success: true,
+      order: createdOrder
+    });
+  } catch (err: any) {
+    console.error("Order creation error:", err);
+    return NextResponse.json(
+      { error: "Failed to create order. Please try again or call our store." },
+      { status: 500 }
+    );
+  }
+}

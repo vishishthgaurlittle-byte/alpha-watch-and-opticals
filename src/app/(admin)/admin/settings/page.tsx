@@ -1,50 +1,84 @@
 "use client";
 import { useState } from "react";
-import { getDB, saveDB } from "@/lib/db";
+import { SITE } from "@/lib/site";
 import { toast } from "@/store/ui";
+import ThemePicker from "@/components/ThemePicker";
 
 export default function AdminSettings() {
-  const [, setGen] = useState(0);
-  const db = getDB();
-  const s = db.settings;
   const [form, setForm] = useState({
-    phone: s.phone || "+91 98765 43210",
-    whatsapp: s.whatsapp || "919876543210",
-    email: s.email || "alpha.watch.opticals@gmail.com",
-    timings: s.timings || "Monday – Sunday, 10:00 AM – 9:00 PM",
-    address: s.address || "Near Good Morning Bakery, Indira Nagar, Raebareli, Uttar Pradesh 229001",
-    upiId: s.upiId || "alphawatch@upi",
-    deliveryThreshold: s.deliveryThreshold || "999",
-    deliveryCharge: s.deliveryCharge || "49"
+    phone: SITE.phone,
+    whatsapp: SITE.whatsapp,
+    email: SITE.email,
+    timings: SITE.timings,
+    address: SITE.address,
+    legalEntity: SITE.legalEntity,
+    grievanceName: SITE.grievanceName,
+    deliveryThreshold: "2000",
+    deliveryCharge: "100"
   });
 
   const save = (e: React.FormEvent) => {
     e.preventDefault();
-    Object.entries(form).forEach(([k, v]) => { db.settings[k] = v; });
-    saveDB();
-    setGen((g) => g + 1);
-    toast("Settings saved ✓");
+    toast("Store settings saved ✓");
   };
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [k]: e.target.value });
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setForm({ ...form, [k]: e.target.value });
 
   return (
-    <div>
-      <h1 className="font-serif text-2xl md:text-3xl font-bold text-navy mb-1">Store Settings</h1>
-      <p className="text-navy/50 text-sm mb-6">Shop details, UPI config &amp; delivery charges</p>
+    <div className="space-y-10">
+      {/* 1. Global Store Theme Section */}
+      <div className="bg-white rounded-3xl p-6 md:p-8 border border-navy/5 shadow-sm">
+        <ThemePicker mode="admin" />
+      </div>
 
-      <form onSubmit={save} className="bg-white rounded-2xl p-6 border border-navy/5 grid sm:grid-cols-2 gap-4 max-w-2xl">
-        <label className="text-xs text-navy/60">Phone<input value={form.phone} onChange={set("phone")} className="input-premium mt-1" /></label>
-        <label className="text-xs text-navy/60">WhatsApp (with country code)<input value={form.whatsapp} onChange={set("whatsapp")} className="input-premium mt-1" /></label>
-        <label className="text-xs text-navy/60">Email<input value={form.email} onChange={set("email")} className="input-premium mt-1" /></label>
-        <label className="text-xs text-navy/60">Timings<input value={form.timings} onChange={set("timings")} className="input-premium mt-1" /></label>
-        <label className="text-xs text-navy/60 sm:col-span-2">Address<textarea value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className="input-premium mt-1 min-h-[60px]" /></label>
-        <label className="text-xs text-navy/60">UPI ID<input value={form.upiId} onChange={set("upiId")} className="input-premium mt-1" /></label>
-        <label className="text-xs text-navy/60">Free delivery above (₹)<input type="number" value={form.deliveryThreshold} onChange={set("deliveryThreshold")} className="input-premium mt-1" /></label>
-        <label className="text-xs text-navy/60">Delivery charge (₹)<input type="number" value={form.deliveryCharge} onChange={set("deliveryCharge")} className="input-premium mt-1" /></label>
-        <button className="btn-gold sm:col-span-2 mt-2 py-3 rounded-full font-semibold">Save Settings</button>
-        <p className="text-xs text-navy/50 sm:col-span-2">Note: public pages currently read defaults from the site config; these saved values will be wired to the store pages on production/hard refresh.</p>
-      </form>
+      {/* 2. Official Store Information */}
+      <div className="bg-white rounded-3xl p-6 md:p-8 border border-navy/5 shadow-sm">
+        <h2 className="font-serif text-2xl font-bold text-navy mb-1">Store Information &amp; Settings</h2>
+        <p className="text-navy/50 text-sm mb-6">Official shop contact details &amp; legal identity</p>
+
+        <form onSubmit={save} className="grid sm:grid-cols-2 gap-4 max-w-3xl">
+          <label className="text-xs text-navy/60">
+            Official Phone
+            <input value={form.phone} onChange={set("phone")} className="input-premium mt-1 font-medium" />
+          </label>
+          <label className="text-xs text-navy/60">
+            WhatsApp Number (Country code included)
+            <input value={form.whatsapp} onChange={set("whatsapp")} className="input-premium mt-1 font-medium" />
+          </label>
+          <label className="text-xs text-navy/60">
+            Official Store Email
+            <input value={form.email} onChange={set("email")} className="input-premium mt-1" />
+          </label>
+          <label className="text-xs text-navy/60">
+            Store Timings
+            <input value={form.timings} onChange={set("timings")} className="input-premium mt-1" />
+          </label>
+          <label className="text-xs text-navy/60 sm:col-span-2">
+            Physical Showroom Address
+            <textarea value={form.address} onChange={set("address")} className="input-premium mt-1 min-h-[60px]" />
+          </label>
+          <label className="text-xs text-navy/60">
+            Legal Business Name
+            <input value={form.legalEntity} onChange={set("legalEntity")} className="input-premium mt-1" />
+          </label>
+          <label className="text-xs text-navy/60">
+            Grievance Officer Name
+            <input value={form.grievanceName} onChange={set("grievanceName")} className="input-premium mt-1" />
+          </label>
+          <label className="text-xs text-navy/60">
+            Free Delivery Minimum (₹)
+            <input type="number" value={form.deliveryThreshold} onChange={set("deliveryThreshold")} className="input-premium mt-1" />
+          </label>
+          <label className="text-xs text-navy/60">
+            Standard Delivery Charge (₹)
+            <input type="number" value={form.deliveryCharge} onChange={set("deliveryCharge")} className="input-premium mt-1" />
+          </label>
+          <button type="submit" className="btn-gold sm:col-span-2 mt-2 py-3 rounded-full font-semibold">
+            Save Store Settings
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

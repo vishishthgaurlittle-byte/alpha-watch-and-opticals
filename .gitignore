@@ -26,6 +26,14 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# local database files
+*.db
+*.db-journal
+prisma/*.db
+prisma/*.db-journal
+test_suite.js
+theme.test.js
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

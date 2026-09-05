@@ -8,87 +8,81 @@ const docs: Record<string, { title: string; content: string[] }> = {
   privacy: {
     title: "Privacy Policy",
     content: [
-      "At Alpha Watch & Opticals, we respect your privacy and are committed to protecting your personal information. This policy explains what we collect and how we use it.",
-      "Information we collect: when you create an account or place an order, we collect your name, email address, phone number, delivery address and order history. If you sign in with Google, we store your Google profile name, email and picture.",
-      "How we use your information: to process and deliver your orders, manage your account, provide customer support, send order notifications and, with your consent, promotional offers.",
-      "Payments: we accept UPI payments. Payment screenshots you upload as proof are stored securely and used only to verify and approve your order.",
-      "We never sell your personal data to third parties. Your information is stored via our secure backend (Insforge) and protected by industry-standard measures.",
-      "You may request access, correction or deletion of your personal data at any time by contacting us over WhatsApp, phone or email."
+      `At ${SITE.name} ("we", "us", or "our"), located at Chowdhary Complex, Degree College Chauraha, Raebareli, we respect your privacy and are committed to protecting your personal data in compliance with the Digital Personal Data Protection Act (DPDPA) and Information Technology Act, 2000.`,
+      "Information We Collect: When you browse our website, create an account, place an order, or book an appointment, we collect your name, mobile number, email address, delivery address, and prescription/fitting notes. For OAuth authentication, we receive your verified profile email and name.",
+      "How We Use Your Data: To process and fulfill your product orders, schedule eye tests and optical consultations, provide customer service and warranty tracking, and send essential transactional updates.",
+      "Data Security & Sharing: We do not sell, rent, or trade your personal information. Data is encrypted in transit and stored securely on protected database servers.",
+      `Grievance Officer: In accordance with the Consumer Protection (E-Commerce) Rules, 2020, our Grievance Redressal Officer is ${SITE.grievanceName}. Email: ${SITE.grievanceEmail}, Mobile: ${SITE.phone}.`
     ]
   },
   "privacy-policy": {
     title: "Privacy Policy",
     content: [
-      "At Alpha Watch & Opticals, we respect your privacy and are committed to protecting your personal information. This policy explains what we collect and how we use it.",
-      "Information we collect: when you create an account or place an order, we collect your name, email address, phone number, delivery address and order history. If you sign in with Google, we store your Google profile name, email and picture.",
-      "How we use your information: to process and deliver your orders, manage your account, provide customer support, send order notifications and, with your consent, promotional offers.",
-      "Payments: we accept UPI payments. Payment screenshots you upload as proof are stored securely and used only to verify and approve your order.",
-      "We never sell your personal data to third parties. Your information is stored via our secure backend (Insforge) and protected by industry-standard measures.",
-      "You may request access, correction or deletion of your personal data at any time by contacting us over WhatsApp, phone or email."
+      `At ${SITE.name} ("we", "us", or "our"), located at Chowdhary Complex, Degree College Chauraha, Raebareli, we respect your privacy and are committed to protecting your personal data in compliance with the Digital Personal Data Protection Act (DPDPA) and Information Technology Act, 2000.`,
+      "Information We Collect: When you browse our website, create an account, place an order, or book an appointment, we collect your name, mobile number, email address, delivery address, and prescription/fitting notes. For OAuth authentication, we receive your verified profile email and name.",
+      "How We Use Your Data: To process and fulfill your product orders, schedule eye tests and optical consultations, provide customer service and warranty tracking, and send essential transactional updates.",
+      "Data Security & Sharing: We do not sell, rent, or trade your personal information. Data is encrypted in transit and stored securely on protected database servers.",
+      `Grievance Officer: In accordance with the Consumer Protection (E-Commerce) Rules, 2020, our Grievance Redressal Officer is ${SITE.grievanceName}. Email: ${SITE.grievanceEmail}, Mobile: ${SITE.phone}.`
     ]
   },
   terms: {
-    title: "Terms & Conditions",
+    title: "Terms & Conditions of Service",
     content: [
-      "By browsing or purchasing from our website, you agree to these terms and conditions.",
-      "Orders: all orders are subject to confirmation. An order is considered placed only after successful submission, and payment confirmation where applicable.",
-      "Pricing: all prices are in Indian Rupees (INR) and inclusive of applicable taxes. We reserve the right to correct any pricing errors.",
-      "Payment: we accept UPI payments. For home delivery, full payment via UPI is required before dispatch. For shop pickup, you may pay at the store.",
-      "Account responsibility: you are responsible for maintaining the confidentiality of your login credentials.",
-      "We reserve the right to refuse or cancel any order at our discretion for reasons including stock unavailability or suspected fraud."
+      `Welcome to ${SITE.name}. By accessing our website, purchasing products, or booking services, you agree to be bound by these Terms and Conditions.`,
+      "Product Authenticity & Warranty: All watches (Titan, Casio, Timex, Fastrack) and eyewear distributed through Alpha Watch & Opticals are 100% genuine and sourced through authorized brand channels. Manufacturer warranty cards are stamped upon dispatch or store handover.",
+      "Order Confirmation: An order is confirmed once validated through our ordering system. For store pickup orders, items are reserved at our Chowdhary Complex counter for up to 5 business days.",
+      "Pricing & Taxes: All prices listed on this website are in Indian National Rupees (INR) and are inclusive of Goods and Services Tax (GST). We reserve the right to correct any unintended typographical pricing errors.",
+      "Eye Testing & Prescriptions: Free in-store computerised eye tests provide subjective optical refraction recommendations. Prescription glasses are crafted to the exact specifications provided by the customer or measured in-store."
     ]
   },
   "terms-and-conditions": {
-    title: "Terms & Conditions",
+    title: "Terms & Conditions of Service",
     content: [
-      "By browsing or purchasing from our website, you agree to these terms and conditions.",
-      "Orders: all orders are subject to confirmation. An order is considered placed only after successful submission, and payment confirmation where applicable.",
-      "Pricing: all prices are in Indian Rupees (INR) and inclusive of applicable taxes. We reserve the right to correct any pricing errors.",
-      "Payment: we accept UPI payments. For home delivery, full payment via UPI is required before dispatch. For shop pickup, you may pay at the store.",
-      "Account responsibility: you are responsible for maintaining the confidentiality of your login credentials.",
-      "We reserve the right to refuse or cancel any order at our discretion for reasons including stock unavailability or suspected fraud."
+      `Welcome to ${SITE.name}. By accessing our website, purchasing products, or booking services, you agree to be bound by these Terms and Conditions.`,
+      "Product Authenticity & Warranty: All watches (Titan, Casio, Timex, Fastrack) and eyewear distributed through Alpha Watch & Opticals are 100% genuine and sourced through authorized brand channels. Manufacturer warranty cards are stamped upon dispatch or store handover.",
+      "Order Confirmation: An order is confirmed once validated through our ordering system. For store pickup orders, items are reserved at our Chowdhary Complex counter for up to 5 business days.",
+      "Pricing & Taxes: All prices listed on this website are in Indian National Rupees (INR) and are inclusive of Goods and Services Tax (GST). We reserve the right to correct any unintended typographical pricing errors.",
+      "Eye Testing & Prescriptions: Free in-store computerised eye tests provide subjective optical refraction recommendations. Prescription glasses are crafted to the exact specifications provided by the customer or measured in-store."
     ]
   },
   shipping: {
-    title: "Shipping Policy",
+    title: "Shipping & Fulfillment Policy",
     content: [
-      "We offer two delivery options: Pickup from Shop (Indira Nagar, Raebareli) and Home Delivery.",
-      "Home Delivery: orders are dispatched after UPI payment proof is approved. Delivery typically takes 3–5 business days within Raebareli and nearby areas.",
-      "Delivery charges: free on orders above ₹999; a flat ₹49 fee applies otherwise. Exact charges are shown at checkout.",
-      "Shop Pickup: your order will be marked 'Ready for Pickup' once processed. You can pay at the shop when collecting, or pay in advance online.",
-      "We'll notify you via in-app notifications and SMS/WhatsApp about your order status at every stage."
+      "We offer two fulfillment modes: In-Store Pickup and Doorstep Delivery.",
+      "In-Store Pickup (Chowdhary Complex, Raebareli): Pickup is free of charge. You may visit during store hours (10:00 AM – 9:00 PM, Monday to Sunday) to inspect your watch or eyewear, get free strap adjustment or custom lens fitting, and complete payment at the counter.",
+      "Doorstep Delivery: We ship across Raebareli, Uttar Pradesh, and nationwide across India via trusted courier partners. Deliveries within Raebareli are completed in 1–2 business days; other locations take 3–5 business days.",
+      "Shipping Fees: Orders of ₹2,000 or above qualify for Free Shipping. A standard delivery charge of ₹100 applies on lower order values.",
+      "Order Tracking: Once dispatched, tracking updates and delivery notifications are provided via SMS and WhatsApp."
     ]
   },
   "shipping-and-delivery": {
-    title: "Shipping Policy",
+    title: "Shipping & Fulfillment Policy",
     content: [
-      "We offer two delivery options: Pickup from Shop (Indira Nagar, Raebareli) and Home Delivery.",
-      "Home Delivery: orders are dispatched after UPI payment proof is approved. Delivery typically takes 3–5 business days within Raebareli and nearby areas.",
-      "Delivery charges: free on orders above ₹999; a flat ₹49 fee applies otherwise. Exact charges are shown at checkout.",
-      "Shop Pickup: your order will be marked 'Ready for Pickup' once processed. You can pay at the shop when collecting, or pay in advance online.",
-      "We'll notify you via in-app notifications and SMS/WhatsApp about your order status at every stage."
+      "We offer two fulfillment modes: In-Store Pickup and Doorstep Delivery.",
+      "In-Store Pickup (Chowdhary Complex, Raebareli): Pickup is free of charge. You may visit during store hours (10:00 AM – 9:00 PM, Monday to Sunday) to inspect your watch or eyewear, get free strap adjustment or custom lens fitting, and complete payment at the counter.",
+      "Doorstep Delivery: We ship across Raebareli, Uttar Pradesh, and nationwide across India via trusted courier partners. Deliveries within Raebareli are completed in 1–2 business days; other locations take 3–5 business days.",
+      "Shipping Fees: Orders of ₹2,000 or above qualify for Free Shipping. A standard delivery charge of ₹100 applies on lower order values.",
+      "Order Tracking: Once dispatched, tracking updates and delivery notifications are provided via SMS and WhatsApp."
     ]
   },
   returns: {
-    title: "Return & Refund Policy",
+    title: "Returns, Exchange & Refund Policy",
     content: [
-      "We want you to be completely satisfied with your purchase.",
-      "Return Window: you may request a return or exchange within 7 days of delivery for unworn, unused items in original packaging with tags intact.",
-      "Non-returnable: contact lenses and custom prescription lenses, and any item that shows signs of use or damage, cannot be returned for hygiene and safety reasons.",
-      "Exchanges & Repairs: watch repairs come with a service warranty as stated on your receipt. If an item is defective on arrival, we'll replace it free of charge.",
-      "Refunds: eligible refunds are processed to the original UPI payment method within 5–7 business days after the item is received and inspected.",
-      "To initiate a return, contact us via WhatsApp, phone or support ticket with your order number."
+      "At Alpha Watch & Opticals, customer satisfaction is our top priority. We provide a straightforward 7-day return and exchange policy on eligible items.",
+      "Eligibility: Watches and ready sunglasses must be unworn, in pristine condition, with original brand tags, box, manual, and warranty card intact.",
+      "Custom Prescription Eyewear: Because prescription optical lenses and progressive glasses are individually ground to custom optical powers, lenses cannot be returned once cut unless there is a verifiable optical manufacturing defect. Frames remain eligible for replacement.",
+      "Defects on Arrival: If a watch or frame arrives damaged or malfunctioning, we will immediately repair or replace it at zero extra cost under official brand warranty.",
+      `How to Request an Exchange: Contact Mohd. Shoeb on WhatsApp at ${SITE.whatsapp} or call ${SITE.phone} with your order number #${SITE.shortName}.`
     ]
   },
   "returns-and-refunds": {
-    title: "Return & Refund Policy",
+    title: "Returns, Exchange & Refund Policy",
     content: [
-      "We want you to be completely satisfied with your purchase.",
-      "Return Window: you may request a return or exchange within 7 days of delivery for unworn, unused items in original packaging with tags intact.",
-      "Non-returnable: contact lenses and custom prescription lenses, and any item that shows signs of use or damage, cannot be returned for hygiene and safety reasons.",
-      "Exchanges & Repairs: watch repairs come with a service warranty as stated on your receipt. If an item is defective on arrival, we'll replace it free of charge.",
-      "Refunds: eligible refunds are processed to the original UPI payment method within 5–7 business days after the item is received and inspected.",
-      "To initiate a return, contact us via WhatsApp, phone or support ticket with your order number."
+      "At Alpha Watch & Opticals, customer satisfaction is our top priority. We provide a straightforward 7-day return and exchange policy on eligible items.",
+      "Eligibility: Watches and ready sunglasses must be unworn, in pristine condition, with original brand tags, box, manual, and warranty card intact.",
+      "Custom Prescription Eyewear: Because prescription optical lenses and progressive glasses are individually ground to custom optical powers, lenses cannot be returned once cut unless there is a verifiable optical manufacturing defect. Frames remain eligible for replacement.",
+      "Defects on Arrival: If a watch or frame arrives damaged or malfunctioning, we will immediately repair or replace it at zero extra cost under official brand warranty.",
+      `How to Request an Exchange: Contact Mohd. Shoeb on WhatsApp at ${SITE.whatsapp} or call ${SITE.phone} with your order number #${SITE.shortName}.`
     ]
   }
 };
@@ -96,16 +90,27 @@ const docs: Record<string, { title: string; content: string[] }> = {
 export default function LegalPage({ params }: { params: { slug: string } }) {
   const doc = docs[params.slug];
   if (!doc) notFound();
+
   return (
-    <div className="pt-24 md:pt-28 bg-ivory">
+    <div className="pt-24 md:pt-28 bg-ivory min-h-screen">
       <div className="max-w-3xl mx-auto px-4 py-12">
-        <div className="uppercase tracking-[0.3em] text-xs text-gold-700 mb-3">{SITE.name}</div>
+        <div className="uppercase tracking-[0.3em] text-xs font-semibold text-gold-700 mb-3">{SITE.name}</div>
         <h1 className="font-serif text-3xl md:text-4xl font-bold text-navy mb-8">{doc.title}</h1>
         <div className="space-y-5">
-          {doc.content.map((p, i) => <p key={i} className="text-navy/70 leading-relaxed text-sm md:text-base">{p}</p>)}
+          {doc.content.map((p, i) => (
+            <p key={i} className="text-navy/80 leading-relaxed text-sm md:text-base">
+              {p}
+            </p>
+          ))}
         </div>
-        <div className="mt-10">
-          <Link href="/" className="text-gold-700 text-sm font-medium underline">← Back to Home</Link>
+
+        <div className="mt-12 pt-8 border-t border-navy/10 flex items-center justify-between">
+          <Link href="/" className="text-gold-700 text-sm font-semibold underline">
+            ← Return to Store
+          </Link>
+          <div className="text-xs text-navy/50">
+            {SITE.legalEntity} · Chowdhary Complex, Raebareli
+          </div>
         </div>
       </div>
     </div>

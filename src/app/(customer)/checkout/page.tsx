@@ -5,34 +5,47 @@ import Link from "next/link";
 import { useAuth } from "@/store/auth";
 import { useCart } from "@/store/cart";
 import { toast } from "@/store/ui";
-import { getProductById, getCoupon, getAddresses, saveAddress, createOrder, addPaymentProof, getSetting } from "@/lib/db";
 import { SITE, formatINR } from "@/lib/site";
+import { getProductById } from "@/lib/db";
 
 export default function CheckoutPage() {
   const router = useRouter();
   const user = useAuth((s) => s.user);
   const hydrated = useAuth((s) => s.hydrated);
-  const { items, clear, subtotal } = useCart();
-  const [method, setMethod] = useState<"pickup" | "delivery">("pickup");
-  const [addr, setAddr] = useState({ type: "home", address: "", city: "Raebareli", state: "Uttar Pradesh", pincode: "", landmark: "", phone: "", default: false });
-  const [coupon, setCoupon] = useState("");
-  const [couponInfo, setCouponInfo] = useState<{ code: string; discount: number; id: string } | null>(null);
-  const [proof, setProof] = useState<string | null>(null);
-  const [savedAddrs, setSavedAddrs] = useState<ReturnType<typeof getAddresses>>([]);
-  const [placing, setPlacing] = useState(false);
-
+  const { items, clear } = useCart();
   const uid = user ? user.id : "guest";
 
-  useEffect(() => {
-    if (!hydrated) return;
-    if (!user) {
-      router.replace("/login?next=/checkout");
-    } else {
-      setSavedAddrs(getAddresses(user.id));
-    }
-  }, [user, hydrated, router]);
+  const [deliveryMethod, setDeliveryMethod] = useState<"pickup" | "delivery">("pickup");
+  const [formData, setFormData] = useState({
+    name: user?.name || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
+    line1: "",
+    line2: "",
+    city: "Raebareli",
+    state: "Uttar Pradesh",
+    pincode: "229001",
+    notes: ""
+  });
 
-  // compute totals
+  const [couponCode, setCouponCode] = useState("");
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        name: prev.name || user.name || "",
+        email: prev.email || user.email || "",
+        phone: prev.phone || user.phone || ""
+      }));
+    }
+  }, [user]);
+
+  // compute cart items & base subtotal
   const itemsList = useMemo(
     () =>
       items.map((i) => {
@@ -42,77 +55,119 @@ export default function CheckoutPage() {
     [items]
   );
 
-  const baseSubtotal = itemsList.reduce((a, x) => a + (x.p ? x.p.price : 0) * x.quantity, 0);
-  const shipping = method === "delivery" ? (baseSubtotal >= 999 ? 0 : 49) : 0;
-  const discount = couponInfo?.discount || 0;
-  const total = Math.max(0, baseSubtotal - discount) + shipping;
+  const baseSubtotal = itemsList.reduce((acc, x) => acc + (x.p ? x.p.price : 0) * x.quantity, 0);
+  const shipping = deliveryMethod === "delivery" && baseSubtotal < 2000 ? 100 : 0;
+  const finalTotal = Math.max(0, baseSubtotal - couponDiscount + shipping);
 
-  const applyCoupon = (e: React.FormEvent) => {
+  const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
-    const c = getCoupon(coupon);
-    if (!c) { toast("Invalid coupon code"); return; }
-    if (c.used >= c.usage_limit) { toast("Coupon usage limit reached"); return; }
-    const now = new Date().toISOString().slice(0, 10);
-    if (c.expires_at < now) { toast("Coupon expired"); return; }
-    if (baseSubtotal < c.min_cart) { toast(`Min. order ₹${c.min_cart} for this coupon`); return; }
-    const d = c.type === "percent" ? Math.round((baseSubtotal * c.value) / 100) : c.value;
-    const dd = c.max_discount ? Math.min(d, c.max_discount) : d;
-    setCouponInfo({ code: c.code, discount: dd, id: c.id });
-    toast(`Coupon ${c.code} applied (−${formatINR(dd)})`);
-  };
+    if (!couponCode.trim()) return;
+    setIsApplyingCoupon(true);
 
-  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const reader = new FileReader();
-    reader.onload = () => setProof(reader.result as string);
-    reader.readAsDataURL(f);
-  };
+    try {
+      const res = await fetch("/api/coupons/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponCode, subtotal: baseSubtotal })
+      });
+      const data = await res.json();
 
-  const placeOrder = () => {
-    if (placing) return;
-    if (!user) { toast("Please login to place an order"); router.push("/login?next=/checkout"); return; }
-    if (items.length === 0) { toast("Your cart is empty"); return; }
-    if (method === "delivery") {
-      if (!addr.address.trim() || addr.pincode.length !== 6 || !addr.phone.trim()) { toast("Please complete the delivery address & pin code"); return; }
+      if (!res.ok) {
+        throw new Error(data.error || "Invalid coupon");
+      }
+
+      setCouponDiscount(data.discount);
+      setAppliedCoupon(data.coupon.code);
+      toast(`Coupon ${data.coupon.code} applied! Saved ₹${data.discount}`);
+    } catch (err: any) {
+      toast(err.message || "Failed to apply coupon");
+    } finally {
+      setIsApplyingCoupon(false);
     }
-    setPlacing(true);
+  };
 
-    let savedAddr;
-    if (method === "delivery") {
-      savedAddr = {
-        id: "a-" + Date.now().toString(36),
-        user_id: user.id,
-        ...addr,
-        default: false
+  const handlePlaceOrder = async () => {
+    if (items.length === 0) {
+      toast("Your cart is empty");
+      return;
+    }
+
+    if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim()) {
+      toast("Please fill in your name, email, and 10-digit mobile number");
+      return;
+    }
+
+    if (!/^[6-9]\d{9}$/.test(formData.phone.trim())) {
+      toast("Please enter a valid 10-digit Indian phone number");
+      return;
+    }
+
+    if (deliveryMethod === "delivery" && (!formData.line1.trim() || formData.pincode.length < 6)) {
+      toast("Please enter your complete delivery street address and 6-digit pincode");
+      return;
+    }
+
+    setIsPlacingOrder(true);
+
+    try {
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        deliveryMethod,
+        address:
+          deliveryMethod === "delivery"
+            ? {
+                line1: formData.line1,
+                line2: formData.line2,
+                city: formData.city,
+                state: formData.state,
+                pincode: formData.pincode
+              }
+            : undefined,
+        items: items.map((i) => ({
+          productId: i.product_id,
+          quantity: i.quantity,
+          variant: i.variant?.value
+        })),
+        couponCode: appliedCoupon || undefined,
+        notes: formData.notes
       };
-      saveAddress(savedAddr);
+
+      const res = await fetch("/api/orders/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to place order");
+      }
+
+      clear(uid);
+      toast("Order placed successfully! ✓");
+      router.push(`/order-confirmation/${data.order.id}`);
+    } catch (err: any) {
+      toast(err.message || "Could not complete order. Please try again.");
+    } finally {
+      setIsPlacingOrder(false);
     }
-
-    const order = createOrder(user, items, {
-      delivery_method: method,
-      address: savedAddr,
-      subtotal: baseSubtotal,
-      discount,
-      shipping,
-      coupon_id: couponInfo?.id
-    });
-
-    if (proof) {
-      addPaymentProof(order.id, user.id, proof);
-    }
-
-    clear(uid);
-    router.push(`/order-confirmation/${order.id}`);
   };
 
-  if (!user) {
+  if (items.length === 0) {
     return (
       <div className="pt-32 pb-20 bg-ivory min-h-screen text-center px-4">
-        <div className="w-16 h-16 mx-auto rounded-full bg-navy/5 flex items-center justify-center text-3xl mb-4">🔒</div>
-        <h1 className="font-serif text-2xl font-bold text-navy mb-2">Login Required</h1>
-        <p className="text-navy/60 mb-6 max-w-md mx-auto">Please login or register to continue to checkout. Your cart will be saved.</p>
-        <Link href="/login?next=/checkout" className="btn-gold px-8 py-3 rounded-full font-semibold">Login / Register</Link>
+        <div className="w-16 h-16 mx-auto rounded-full bg-navy/5 flex items-center justify-center text-3xl mb-4">
+          🛍️
+        </div>
+        <h1 className="font-serif text-2xl font-bold text-navy mb-2">Your Cart is Empty</h1>
+        <p className="text-navy/60 mb-6 max-w-md mx-auto">
+          Explore our collection of authentic watches and premium eyewear to add items to your cart.
+        </p>
+        <Link href="/shop" className="btn-gold px-8 py-3 rounded-full font-semibold">
+          Browse Shop
+        </Link>
       </div>
     );
   }
@@ -120,125 +175,233 @@ export default function CheckoutPage() {
   return (
     <div className="pt-24 md:pt-28 bg-ivory min-h-screen">
       <div className="max-w-5xl mx-auto px-4 pb-24">
-        <h1 className="font-serif text-3xl md:text-4xl font-bold text-navy mb-8">Checkout</h1>
+        <h1 className="font-serif text-3xl md:text-4xl font-bold text-navy mb-8">Checkout &amp; Order</h1>
 
         <div className="grid lg:grid-cols-5 gap-8">
           <div className="lg:col-span-3 space-y-6">
-            {/* delivery method */}
-            <div className="bg-white rounded-2xl p-6 border border-navy/5">
-              <h3 className="font-serif text-lg text-navy mb-4">Delivery Method</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <button onClick={() => setMethod("pickup")} className={`rounded-xl p-4 text-left border-2 transition ${method === "pickup" ? "border-gold bg-gold/5" : "border-navy/10"}`}>
+            {/* Customer Information */}
+            <div className="bg-white rounded-2xl p-6 border border-navy/5 shadow-sm">
+              <h3 className="font-serif text-lg text-navy mb-4">Customer Details</h3>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-navy/60 mb-1 block">Full Name *</label>
+                  <input
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData((f) => ({ ...f, name: e.target.value }))}
+                    placeholder="Enter your name"
+                    className="input-premium"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-navy/60 mb-1 block">Mobile Number *</label>
+                  <input
+                    required
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) =>
+                      setFormData((f) => ({ ...f, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))
+                    }
+                    placeholder="10-digit phone number"
+                    className="input-premium"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-xs text-navy/60 mb-1 block">Email Address *</label>
+                  <input
+                    required
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData((f) => ({ ...f, email: e.target.value }))}
+                    placeholder="order.updates@example.com"
+                    className="input-premium"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Delivery Method */}
+            <div className="bg-white rounded-2xl p-6 border border-navy/5 shadow-sm">
+              <h3 className="font-serif text-lg text-navy mb-4">Fulfillment Option</h3>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeliveryMethod("pickup")}
+                  className={`rounded-xl p-4 text-left border-2 transition ${
+                    deliveryMethod === "pickup" ? "border-gold bg-gold/5" : "border-navy/10"
+                  }`}
+                >
                   <div className="text-2xl mb-1">🏬</div>
-                  <div className="font-semibold text-navy text-sm">Pickup from Shop</div>
-                  <div className="text-xs text-navy/50 mt-1">Pay at shop · Indira Nagar, Raebareli</div>
+                  <div className="font-semibold text-navy text-sm">Store Pickup &amp; Trial</div>
+                  <div className="text-xs text-navy/50 mt-1">Chowdhary Complex, Raebareli · Pay on counter</div>
                 </button>
-                <button onClick={() => setMethod("delivery")} className={`rounded-xl p-4 text-left border-2 transition ${method === "delivery" ? "border-gold bg-gold/5" : "border-navy/10"}`}>
+                <button
+                  type="button"
+                  onClick={() => setDeliveryMethod("delivery")}
+                  className={`rounded-xl p-4 text-left border-2 transition ${
+                    deliveryMethod === "delivery" ? "border-gold bg-gold/5" : "border-navy/10"
+                  }`}
+                >
                   <div className="text-2xl mb-1">🚚</div>
                   <div className="font-semibold text-navy text-sm">Home Delivery</div>
-                  <div className="text-xs text-navy/50 mt-1">UPI payment before dispatch</div>
+                  <div className="text-xs text-navy/50 mt-1">Dispatched to your address · Cash/UPI on delivery</div>
                 </button>
               </div>
             </div>
 
-            {/* address */}
-            {method === "delivery" && (
-              <div className="bg-white rounded-2xl p-6 border border-navy/5">
-                <h3 className="font-serif text-lg text-navy mb-4">Shipping Address</h3>
-                {savedAddrs.filter((a) => a.default).length > 0 && !addr.address && (
-                  <div className="mb-4">
-                    <div className="text-xs text-navy/50 mb-2">Quick pick</div>
-                    <div className="flex gap-2 flex-wrap">
-                      {savedAddrs.map((a) => (
-                        <button key={a.id} onClick={() => setAddr({ ...a, type: a.type })} className="border border-navy/15 rounded-full px-3 py-1.5 text-xs text-navy hover:border-gold">
-                          {a.address.slice(0, 30)}…
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+            {/* Shipping Address */}
+            {deliveryMethod === "delivery" && (
+              <div className="bg-white rounded-2xl p-6 border border-navy/5 shadow-sm">
+                <h3 className="font-serif text-lg text-navy mb-4">Delivery Address</h3>
                 <div className="grid sm:grid-cols-2 gap-4">
-                  <input value={addr.address} onChange={(e) => setAddr((f)=>({...f, address: e.target.value}))} placeholder="House / Street / Area" className="input-premium sm:col-span-2" />
-                  <input value={addr.pincode} onChange={(e) => setAddr((f)=>({...f, pincode: e.target.value.replace(/\D/g, "").slice(0, 6)}))} placeholder="Pincode" className="input-premium" />
-                  <input value={addr.phone} onChange={(e) => setAddr((f)=>({...f, phone: e.target.value.slice(0, 10)}))} placeholder="Contact phone" className="input-premium" />
-                  <input value={addr.landmark} onChange={(e) => setAddr((f)=>({...f, landmark: e.target.value}))} placeholder="Landmark (optional)" className="input-premium sm:col-span-2" />
+                  <div className="sm:col-span-2">
+                    <label className="text-xs text-navy/60 mb-1 block">House / Flat / Street Address *</label>
+                    <input
+                      required
+                      value={formData.line1}
+                      onChange={(e) => setFormData((f) => ({ ...f, line1: e.target.value }))}
+                      placeholder="e.g. House No. 42, Civil Lines"
+                      className="input-premium"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-navy/60 mb-1 block">Landmark (Optional)</label>
+                    <input
+                      value={formData.line2}
+                      onChange={(e) => setFormData((f) => ({ ...f, line2: e.target.value }))}
+                      placeholder="Near degree college"
+                      className="input-premium"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-navy/60 mb-1 block">Pincode *</label>
+                    <input
+                      required
+                      value={formData.pincode}
+                      onChange={(e) =>
+                        setFormData((f) => ({ ...f, pincode: e.target.value.replace(/\D/g, "").slice(0, 6) }))
+                      }
+                      placeholder="229001"
+                      className="input-premium"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-navy/60 mb-1 block">City</label>
+                    <input
+                      value={formData.city}
+                      onChange={(e) => setFormData((f) => ({ ...f, city: e.target.value }))}
+                      className="input-premium"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-navy/60 mb-1 block">State</label>
+                    <input
+                      value={formData.state}
+                      onChange={(e) => setFormData((f) => ({ ...f, state: e.target.value }))}
+                      className="input-premium"
+                    />
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* UPI payment */}
-            <div className="bg-white rounded-2xl p-6 border border-navy/5">
-              <h3 className="font-serif text-lg text-navy mb-2">Payment (UPI)</h3>
-              {method === "pickup" ? (
-                <div className="text-sm text-navy/60">
-                  <p className="mb-2">You can <b>pay at the shop</b> when you collect your order — no online payment needed. Prefer to pay now? Pay via UPI to the ID below.</p>
-                </div>
-              ) : (
-                <p className="text-sm text-navy/60 mb-3">Full payment via UPI is required <b>before dispatch</b>. Pay to the shop UPI ID below and upload the screenshot as proof.</p>
-              )}
-              <div className="flex items-center gap-4 bg-navy-950 rounded-2xl p-4 text-ivory">
-                <div className="w-20 h-20 bg-white rounded-xl flex items-center justify-center">QR</div>
-                <div>
-                  <div className="text-xs text-ivory/50 uppercase tracking-wider mb-1">Pay to UPI ID</div>
-                  <div className="text-lg font-bold text-gold">{SITE.upiId}</div>
-                  <div className="text-xs text-ivory/60 mt-1">{SITE.name}</div>
-                </div>
-              </div>
-              <div className="mt-5">
-                <label className="text-xs uppercase tracking-wider text-navy/50 mb-2 block">Upload UPI payment screenshot (proof)</label>
-                <div className="border-2 border-dashed border-navy/15 rounded-xl p-6 text-center">
-                  {proof ? (
-                    <div>
-                      <img src={proof} alt="payment proof" className="max-h-40 mx-auto rounded-lg mb-3" />
-                      <button onClick={() => setProof(null)} className="text-red-500 text-sm">Remove</button>
-                    </div>
-                  ) : (
-                    <label className="cursor-pointer block">
-                      <input type="file" accept="image/*" className="hidden" onChange={onFile} />
-                      <div className="text-3xl mb-2">📤</div>
-                      <div className="text-sm text-navy font-medium">Tap to upload screenshot</div>
-                      <div className="text-xs text-navy/50 mt-1">PNG or JPG · after paying via the UPI ID above</div>
-                    </label>
-                  )}
-                </div>
-              </div>
-              <p className="text-xs text-navy/40 mt-3">* Payment proof is verified by the store before order dispatch.</p>
+            {/* Order Note */}
+            <div className="bg-white rounded-2xl p-6 border border-navy/5 shadow-sm">
+              <h3 className="font-serif text-lg text-navy mb-2">Special Instructions</h3>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData((f) => ({ ...f, notes: e.target.value }))}
+                placeholder="Prescription power notes, preferred pickup timing, or watch strap sizing requests..."
+                className="input-premium min-h-[80px]"
+              />
             </div>
           </div>
 
-          {/* summary */}
+          {/* Summary */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl p-6 border border-navy/5 sticky top-24">
-              <h3 className="font-serif text-lg text-navy mb-4">Your Order</h3>
-              <div className="space-y-3 max-h-64 overflow-y-auto">
+            <div className="bg-white rounded-2xl p-6 border border-navy/5 sticky top-24 shadow-sm">
+              <h3 className="font-serif text-lg text-navy mb-4">Order Summary</h3>
+              <div className="space-y-3 max-h-64 overflow-y-auto divide-y divide-navy/5">
                 {itemsList.map((x, idx) => (
-                  <div key={idx} className="flex items-center gap-3">
+                  <div key={idx} className="flex items-center gap-3 pt-2 first:pt-0">
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-navy/5 shrink-0">
-                      {x.p?.images[0] ? <img src={x.p.images[0]} alt="" className="w-full h-full object-cover" /> : null}
+                      {x.p?.images[0] ? (
+                        <img src={x.p.images[0]} alt="" className="w-full h-full object-cover" />
+                      ) : null}
                     </div>
-                    <div className="flex-1 text-sm text-navy truncate">{x.p?.name} <span className="text-navy/40">×{x.quantity}</span></div>
-                    <div className="text-sm font-medium text-navy">{x.p ? formatINR(x.p.price * x.quantity) : ""}</div>
+                    <div className="flex-1 text-sm text-navy truncate">
+                      <div className="font-medium truncate">{x.p?.name}</div>
+                      <div className="text-xs text-navy/50">
+                        {x.variant?.value ? `Option: ${x.variant.value} · ` : ""}Qty: {x.quantity}
+                      </div>
+                    </div>
+                    <div className="text-sm font-semibold text-navy">
+                      {x.p ? formatINR(x.p.price * x.quantity) : ""}
+                    </div>
                   </div>
                 ))}
               </div>
 
-              {/* coupon */}
-              <form onSubmit={applyCoupon} className="mt-5 flex gap-2">
-                <input value={coupon} onChange={(e) => setCoupon(e.target.value)} placeholder="Coupon code" className="input-premium flex-1 text-sm" />
-                <button className="btn-gold px-4 rounded-full text-sm font-medium">Apply</button>
+              {/* Coupon input */}
+              <form onSubmit={handleApplyCoupon} className="mt-5 flex gap-2">
+                <input
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  placeholder="Coupon (e.g. WELCOME10)"
+                  className="input-premium flex-1 text-sm uppercase"
+                />
+                <button
+                  type="submit"
+                  disabled={isApplyingCoupon}
+                  className="btn-gold px-4 rounded-full text-sm font-medium disabled:opacity-50"
+                >
+                  {isApplyingCoupon ? "..." : "Apply"}
+                </button>
               </form>
 
               <div className="border-t border-navy/10 my-4 space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-navy/60">Subtotal</span><span>{formatINR(baseSubtotal)}</span></div>
-                {couponInfo && <div className="flex justify-between text-emerald"><span>Coupon ({couponInfo.code})</span><span>−{formatINR(couponInfo.discount)}</span></div>}
-                <div className="flex justify-between"><span className="text-navy/60">Delivery</span><span>{shipping === 0 ? (method === "pickup" ? "Pickup" : "Free") : formatINR(shipping)}</span></div>
+                <div className="flex justify-between">
+                  <span className="text-navy/60">Subtotal</span>
+                  <span>{formatINR(baseSubtotal)}</span>
+                </div>
+                {couponDiscount > 0 && (
+                  <div className="flex justify-between text-emerald font-medium">
+                    <span>Discount ({appliedCoupon})</span>
+                    <span>−{formatINR(couponDiscount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-navy/60">Fulfillment</span>
+                  <span>
+                    {deliveryMethod === "pickup"
+                      ? "Free Store Pickup"
+                      : shipping === 0
+                      ? "Free Delivery"
+                      : formatINR(shipping)}
+                  </span>
+                </div>
               </div>
-              <div className="flex justify-between text-xl mb-5"><span className="text-navy">Total</span><span className="text-navy font-bold">{formatINR(total)}</span></div>
 
-              <button onClick={placeOrder} disabled={placing} className="btn-gold w-full py-4 rounded-full font-bold text-base disabled:opacity-60">
-                {placing ? "Placing order…" : method === "pickup" ? "Place Order (Pay at Shop)" : "Place Order & Submit Proof"}
+              <div className="flex justify-between text-xl mb-5 pt-2 border-t border-navy/10">
+                <span className="text-navy font-serif">Grand Total</span>
+                <span className="text-navy font-bold">{formatINR(finalTotal)}</span>
+              </div>
+
+              <button
+                onClick={handlePlaceOrder}
+                disabled={isPlacingOrder}
+                className="btn-gold w-full py-4 rounded-full font-bold text-base disabled:opacity-60 shadow-md"
+              >
+                {isPlacingOrder
+                  ? "Confirming Order..."
+                  : deliveryMethod === "pickup"
+                  ? "Reserve & Pay at Store Counter"
+                  : "Confirm Order for Delivery"}
               </button>
-              {!user && <p className="text-xs text-navy/50 text-center mt-2">Please login to place your order.</p>}
+
+              <div className="mt-4 p-3 bg-navy/5 rounded-xl text-center text-xs text-navy/60">
+                🔒 Official order guarantee by Alpha Watch &amp; Opticals, Chowdhary Complex, Raebareli.
+              </div>
             </div>
           </div>
         </div>

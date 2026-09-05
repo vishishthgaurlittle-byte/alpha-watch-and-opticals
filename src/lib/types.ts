@@ -64,6 +64,7 @@ export interface Product {
   seo_title?: string;
   seo_description?: string;
   created_at: string;
+  updated_at?: string;
   rating: number;
   reviews_count: number;
 }

@@ -1,8 +1,7 @@
 User-agent: *
 Allow: /
-Disallow: /admin
-Disallow: /account
-Disallow: /checkout
-Disallow: /cart
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
 
-Sitemap: https://alpha-watch-opticals.vercel.app/sitemap.xml
+Sitemap: https://alpha-watch-and-opticals.vercel.app/sitemap.xml

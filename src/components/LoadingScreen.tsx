@@ -62,14 +62,14 @@ export default function LoadingScreen() {
           transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
           style={{ transform: `translateY(${gap * 0.4}px)` }}
         >
-          <g fill="#C6A15B">
+          <g fill="var(--accent)">
             {Array.from({ length: 12 }).map((_, i) => (
               <rect key={i} x="47" y="4" width="6" height="14" rx="2"
                 transform={`rotate(${i * 30} 50 50)`} />
             ))}
             <circle cx="50" cy="50" r="26" />
           </g>
-          <circle cx="50" cy="50" r="12" fill="#0B1D33" />
+          <circle cx="50" cy="50" r="12" fill="var(--bg)" />
         </motion.svg>
         {/* hands */}
         <motion.div
@@ -77,9 +77,9 @@ export default function LoadingScreen() {
           style={{ transform: `translateY(${gap * 0.2}px)`, opacity: 1 - gap / 130 }}
         >
           <svg viewBox="0 0 100 100" className="w-16 h-16">
-            <line x1="50" y1="50" x2="50" y2="26" stroke="#F5F0E6" strokeWidth="4" strokeLinecap="round" />
-            <line x1="50" y1="50" x2="68" y2="58" stroke="#C6A15B" strokeWidth="4" strokeLinecap="round" />
-            <circle cx="50" cy="50" r="3" fill="#C6A15B" />
+            <line x1="50" y1="50" x2="50" y2="26" stroke="var(--text)" strokeWidth="4" strokeLinecap="round" />
+            <line x1="50" y1="50" x2="68" y2="58" stroke="var(--accent)" strokeWidth="4" strokeLinecap="round" />
+            <circle cx="50" cy="50" r="3" fill="var(--accent)" />
           </svg>
         </motion.div>
       </div>

@@ -12,6 +12,7 @@ const adminNav = [
   { id: "/admin/customers", label: "Customers", icon: "👥" },
   { id: "/admin/coupons", label: "Coupons", icon: "🏷" },
   { id: "/admin/reviews", label: "Reviews", icon: "⭐" },
+  { id: "/admin/theme", label: "Store Theme", icon: "🎨" },
   { id: "/admin/settings", label: "Settings", icon: "⚙" }
 ];
 

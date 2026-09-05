@@ -1,16 +1,31 @@
 {
   "name": "Alpha Watch & Opticals",
   "short_name": "Alpha",
-  "description": "Premium Watch House & Opticals in Indira Nagar, Raebareli. Timeless watches, eyewear & eye care.",
+  "description": "Premium Watch House & Opticals at Chowdhary Complex, Degree College Chauraha, Raebareli. Timeless watches, eyewear & eye care.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0B1D33",
   "theme_color": "#0B1D33",
   "orientation": "portrait",
   "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
   "categories": ["shopping", "fashion"],
   "lang": "en-IN"
