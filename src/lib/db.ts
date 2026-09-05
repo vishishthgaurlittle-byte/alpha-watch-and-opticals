@@ -26,6 +26,7 @@ interface DBShape {
   addresses: Address[];
   categories: Category[];
   products: Product[];
+  deletedProductIds: string[];
   coupons: Coupon[];
   reviews: Review[];
   orders: Order[];
@@ -279,23 +280,6 @@ const PRODUCTS: Product[] = [
     ],
     rating: 4.5,
     reviews_count: 1
-  }),
-  product({
-    id: "p-draft",
-    name: "Emerald Automatic Limited Edition",
-    slug: "emerald-automatic-limited-edition",
-    sku: "AW-M-099",
-    brand: "Alpha Signature",
-    category_id: "c-mens",
-    price: 29999,
-    mrp: 37999,
-    stock: 5,
-    description: "An exclusive limited-edition automatic in emerald green. (Draft product — not yet published.)",
-    specs: { "Case Diameter": "42 mm", Movement: "Automatic" },
-    images: ["/images/products/mens-chrono-gold.jpg"],
-    status: "draft",
-    rating: 0,
-    reviews_count: 0
   })
 ];
 
@@ -311,6 +295,7 @@ function seed(): DBShape {
     addresses: [],
     categories: CATEGORIES,
     products: PRODUCTS,
+    deletedProductIds: [],
     coupons: COUPONS,
     reviews: [
       {
@@ -365,7 +350,11 @@ function loadFromServerDisk(): DBShape {
     const filePath = getDiskFilePath();
     if (filePath && nodeFs.existsSync(filePath)) {
       const raw = nodeFs.readFileSync(filePath, "utf8");
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (!parsed.deletedProductIds) parsed.deletedProductIds = [];
+        return parsed;
+      }
     }
   } catch (err) {
     console.warn("Could not read DB from disk:", err);
@@ -395,6 +384,9 @@ export function getDB(): DBShape {
     if (!globalForDB.aw_server_db) {
       globalForDB.aw_server_db = loadFromServerDisk();
     }
+    if (!globalForDB.aw_server_db.deletedProductIds) {
+      globalForDB.aw_server_db.deletedProductIds = [];
+    }
     return globalForDB.aw_server_db;
   }
 
@@ -406,6 +398,7 @@ export function getDB(): DBShape {
   } catch {
     clientCache = seed();
   }
+  if (!clientCache.deletedProductIds) clientCache.deletedProductIds = [];
   return clientCache;
 }
 
@@ -506,16 +499,26 @@ export function setSession(id: string | null) {
 
 // ---------- Products ----------
 export function getPublishedProducts(): Product[] {
-  return getDB().products.filter((p) => p.status === "published");
+  const db = getDB();
+  const deleted = db.deletedProductIds || [];
+  return db.products.filter((p) => p.status === "published" && !deleted.includes(p.id) && !deleted.includes(p.slug));
 }
 export function getAllProducts(): Product[] {
-  return getDB().products;
+  const db = getDB();
+  const deleted = db.deletedProductIds || [];
+  return db.products.filter((p) => !deleted.includes(p.id) && !deleted.includes(p.slug));
 }
 export function getProductBySlug(slug: string): Product | undefined {
-  return getDB().products.find((p) => p.slug === slug);
+  const db = getDB();
+  const deleted = db.deletedProductIds || [];
+  if (deleted.includes(slug)) return undefined;
+  return db.products.find((p) => p.slug === slug && !deleted.includes(p.id));
 }
 export function getProductById(id: string): Product | undefined {
-  return getDB().products.find((p) => p.id === id);
+  const db = getDB();
+  const deleted = db.deletedProductIds || [];
+  if (deleted.includes(id)) return undefined;
+  return db.products.find((p) => (p.id === id || p.slug === id) && !deleted.includes(p.id));
 }
 export function relatedProducts(p: Product): Product[] {
   return getPublishedProducts()
@@ -525,6 +528,9 @@ export function relatedProducts(p: Product): Product[] {
 }
 export function upsertProduct(p: Product) {
   const db = getDB();
+  if (db.deletedProductIds) {
+    db.deletedProductIds = db.deletedProductIds.filter((x) => x !== p.id && x !== p.slug);
+  }
   const i = db.products.findIndex((x) => x.id === p.id || x.slug === p.slug);
   if (i >= 0) db.products[i] = { ...db.products[i], ...p };
   else db.products.unshift(p);
@@ -532,7 +538,18 @@ export function upsertProduct(p: Product) {
 }
 export function deleteProduct(id: string) {
   const db = getDB();
-  db.products = db.products.filter((p) => p.id !== id && p.slug !== id);
+  if (!db.deletedProductIds) db.deletedProductIds = [];
+  if (!db.deletedProductIds.includes(id)) {
+    db.deletedProductIds.push(id);
+  }
+  const prod = db.products.find((p) => p.id === id || p.slug === id);
+  if (prod) {
+    if (!db.deletedProductIds.includes(prod.id)) db.deletedProductIds.push(prod.id);
+    if (!db.deletedProductIds.includes(prod.slug)) db.deletedProductIds.push(prod.slug);
+  }
+  db.products = db.products.filter(
+    (p) => p.id !== id && p.slug !== id && !db.deletedProductIds.includes(p.id) && !db.deletedProductIds.includes(p.slug)
+  );
   saveDB();
 }
 

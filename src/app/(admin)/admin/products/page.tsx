@@ -19,7 +19,7 @@ const emptyProduct: Product = {
   images: ["/images/products/mens-chrono-gold.jpg"],
   badges: [],
   variants: [],
-  status: "draft",
+  status: "published",
   rating: 5.0,
   reviews_count: 0,
   created_at: ""
@@ -40,6 +40,7 @@ export default function AdminProducts() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [view, setView] = useState<"list" | "edit">("list");
   const [saving, setSaving] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const fetchProducts = async () => {
     try {
@@ -53,17 +54,17 @@ export default function AdminProducts() {
             slug: p.slug,
             sku: p.sku,
             brand: p.brand,
-            category_id: p.categoryId,
-            price: p.price,
-            mrp: p.mrp,
-            stock: p.stock,
-            status: p.status,
+            category_id: p.categoryId || p.category_id,
+            price: Number(p.price),
+            mrp: Number(p.mrp || p.price),
+            stock: Number(p.stock ?? 0),
+            status: p.status as "published" | "draft",
             description: p.description,
             specs: typeof p.specsJson === "string" ? JSON.parse(p.specsJson || "{}") : p.specsJson || {},
             images: typeof p.imagesJson === "string" ? JSON.parse(p.imagesJson || "[]") : p.imagesJson || [],
             badges: typeof p.badgesJson === "string" ? JSON.parse(p.badgesJson || "[]") : p.badgesJson || [],
-            rating: p.rating,
-            reviews_count: p.reviewsCount,
+            rating: p.rating || 5.0,
+            reviews_count: p.reviewsCount || 0,
             created_at: p.createdAt
           }))
         );
@@ -92,6 +93,38 @@ export default function AdminProducts() {
         : { ...emptyProduct, id: "", created_at: new Date().toISOString() }
     );
     setView("edit");
+  };
+
+  const toggleStatus = async (p: Product) => {
+    const nextStatus = p.status === "published" ? "draft" : "published";
+    setTogglingId(p.id);
+
+    // Optimistic UI update
+    setProducts((prev) =>
+      prev.map((item) => (item.id === p.id ? { ...item, status: nextStatus } : item))
+    );
+
+    try {
+      const res = await fetch(`/api/admin/products/${p.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: nextStatus })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update status");
+
+      toast(
+        nextStatus === "published"
+          ? `"${p.name}" is now Live in Shop ✓`
+          : `"${p.name}" moved to Draft (Hidden from Shop) ✓`
+      );
+      await fetchProducts();
+    } catch (err: any) {
+      toast(err.message || "Failed to toggle status");
+      await fetchProducts();
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   const saveProduct = async () => {
@@ -128,7 +161,7 @@ export default function AdminProducts() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to save product");
 
-      toast("Product saved successfully ✓");
+      toast("Product saved strictly to database ✓");
       setView("list");
       await fetchProducts();
     } catch (err: any) {
@@ -138,16 +171,22 @@ export default function AdminProducts() {
     }
   };
 
-  const deleteProd = async (id: string) => {
-    if (!confirm("Are you sure you want to permanently delete this product?")) return;
+  const deleteProd = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to permanently delete "${name}"? This action cannot be undone.`)) return;
+
+    // Optimistic UI removal
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+
     try {
       const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        toast("Product deleted ✓");
-        await fetchProducts();
-      }
-    } catch {
-      toast("Failed to delete product");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete product");
+
+      toast(`"${name}" permanently deleted from catalog ✓`);
+      await fetchProducts();
+    } catch (err: any) {
+      toast(err.message || "Failed to delete product");
+      await fetchProducts();
     }
   };
 
@@ -165,84 +204,99 @@ export default function AdminProducts() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
           <h1 className="font-serif text-2xl md:text-3xl font-bold text-navy">Products Catalog</h1>
-          <p className="text-navy/50 text-sm">{products.length} products in database</p>
+          <p className="text-navy/50 text-sm">
+            {products.length} products total · Full admin management (Edit, Draft, Delete)
+          </p>
         </div>
         <button
           onClick={() => startEdit(null)}
           className="btn-gold px-5 py-2.5 rounded-full font-semibold text-sm shadow-sm"
         >
-          + Add Product
+          + Add New Product
         </button>
       </div>
 
       <div className="bg-white rounded-2xl p-5 border border-navy/5 shadow-sm overflow-x-auto">
         {loading ? (
           <div className="py-12 text-center text-navy/50 text-sm">Loading products from database...</div>
+        ) : products.length === 0 ? (
+          <div className="py-16 text-center text-navy/50 text-sm">
+            No products in catalog. Click "+ Add New Product" to create one.
+          </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="text-navy/50 text-left border-b border-navy/10">
-                <th className="py-2 font-medium">Product</th>
-                <th className="py-2 font-medium">Category</th>
-                <th className="py-2 font-medium">Price</th>
-                <th className="py-2 font-medium">Stock</th>
-                <th className="py-2 font-medium">Status</th>
-                <th className="py-2 font-medium text-right">Actions</th>
+                <th className="py-3 font-medium">Product</th>
+                <th className="py-3 font-medium">Category</th>
+                <th className="py-3 font-medium">Price</th>
+                <th className="py-3 font-medium">Stock</th>
+                <th className="py-3 font-medium">Visibility Status</th>
+                <th className="py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {products.map((p) => (
-                <tr key={p.id} className="border-b border-navy/5">
-                  <td className="py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-navy/5 shrink-0">
-                        {p.images[0] ? (
-                          <img src={p.images[0]} alt="" className="w-full h-full object-cover" />
-                        ) : null}
+              {products.map((p) => {
+                const isPublished = p.status === "published";
+                return (
+                  <tr key={p.id} className={`border-b border-navy/5 ${!isPublished ? "bg-amber-50/30" : ""}`}>
+                    <td className="py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-navy/5 shrink-0 border border-navy/10">
+                          {p.images[0] ? (
+                            <img src={p.images[0]} alt="" className="w-full h-full object-cover" />
+                          ) : null}
+                        </div>
+                        <div>
+                          <div className="font-medium text-navy">{p.name}</div>
+                          <div className="text-xs text-navy/40">{p.sku}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-medium text-navy">{p.name}</div>
-                        <div className="text-xs text-navy/40">{p.sku}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3 text-navy/70">
-                    {categories.find((c) => c.id === p.category_id)?.name || p.category_id}
-                  </td>
-                  <td className="py-3 font-semibold text-navy">{formatINR(p.price)}</td>
-                  <td className="py-3">
-                    <span className={`${p.stock <= 5 ? "text-red-500 font-bold" : "text-navy"}`}>{p.stock}</span>
-                  </td>
-                  <td className="py-3">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-semibold uppercase ${
-                        p.status === "published"
-                          ? "bg-emerald/10 text-emerald"
-                          : "bg-navy/5 text-navy/60"
-                      }`}
-                    >
-                      {p.status}
-                    </span>
-                  </td>
-                  <td className="py-3 text-right whitespace-nowrap">
-                    <button
-                      onClick={() => startEdit(p)}
-                      className="text-gold-700 text-xs font-semibold mr-3 hover:underline"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => deleteProd(p.id)}
-                      className="text-red-500 text-xs font-semibold hover:underline"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="py-3 text-navy/70">
+                      {categories.find((c) => c.id === p.category_id)?.name || p.category_id}
+                    </td>
+                    <td className="py-3 font-semibold text-navy">{formatINR(p.price)}</td>
+                    <td className="py-3">
+                      <span className={`${p.stock <= 5 ? "text-red-500 font-bold" : "text-navy"}`}>
+                        {p.stock}
+                      </span>
+                    </td>
+                    <td className="py-3">
+                      <button
+                        disabled={togglingId === p.id}
+                        onClick={() => toggleStatus(p)}
+                        className={`px-3 py-1 rounded-full text-xs font-bold uppercase transition flex items-center gap-1.5 ${
+                          isPublished
+                            ? "bg-emerald/10 text-emerald hover:bg-emerald hover:text-white"
+                            : "bg-amber-100 text-amber-800 hover:bg-amber-600 hover:text-white"
+                        }`}
+                        title="Click to toggle between Published and Draft"
+                      >
+                        <span>{isPublished ? "● Published" : "○ Draft"}</span>
+                        <span className="text-[10px] opacity-60">⇄</span>
+                      </button>
+                    </td>
+                    <td className="py-3 text-right whitespace-nowrap">
+                      <button
+                        onClick={() => startEdit(p)}
+                        className="text-gold-700 text-xs font-semibold mr-3 hover:underline"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => deleteProd(p.id, p.name)}
+                        className="text-red-500 text-xs font-semibold hover:underline"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -283,15 +337,16 @@ function EditForm({
             onClick={onSave}
             className="btn-gold px-5 py-2.5 rounded-full font-semibold text-sm disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save Product"}
+            {saving ? "Saving strictly to DB..." : "Save Product ✓"}
           </button>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl p-6 border border-navy/5 shadow-sm grid md:grid-cols-2 gap-4">
         <label className="text-xs text-navy/60">
-          Product Name
+          Product Name *
           <input
+            required
             value={p.name}
             onChange={(e) => up({ name: e.target.value })}
             className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 mt-1 font-medium"
@@ -320,18 +375,18 @@ function EditForm({
           </select>
         </label>
         <label className="text-xs text-navy/60">
-          Publishing Status
+          Publishing Status *
           <select
             value={p.status}
             onChange={(e) => up({ status: e.target.value as any })}
-            className="input-premium bg-white text-navy border-navy/15 mt-1"
+            className="input-premium bg-white text-navy border-navy/15 mt-1 font-bold"
           >
-            <option value="published">Published (Visible in Shop)</option>
-            <option value="draft">Draft (Hidden - Returns 404)</option>
+            <option value="published">Published (Visible in Store)</option>
+            <option value="draft">Draft (Hidden from Store - Returns 404)</option>
           </select>
         </label>
         <label className="text-xs text-navy/60">
-          Price (₹)
+          Selling Price (₹) *
           <input
             type="number"
             value={p.price}
@@ -340,7 +395,7 @@ function EditForm({
           />
         </label>
         <label className="text-xs text-navy/60">
-          MRP (₹)
+          MRP / Retail Price (₹)
           <input
             type="number"
             value={p.mrp}
@@ -376,6 +431,7 @@ function EditForm({
               <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-navy/10">
                 <img src={img} alt="" className="w-full h-full object-cover" />
                 <button
+                  type="button"
                   onClick={() => up({ images: p.images.filter((_, j) => j !== i) })}
                   className="absolute top-0 right-0 bg-red-500 text-white text-xs w-5 h-5 rounded-bl"
                 >

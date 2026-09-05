@@ -1,6 +1,6 @@
 import prisma from "./prisma";
 import type { Product, Category } from "./types";
-import { getPublishedProducts, getProductBySlug, relatedProducts, getCategories } from "./db";
+import { getPublishedProducts, getProductBySlug, relatedProducts, getCategories, getDB } from "./db";
 
 export function formatDbProduct(p: any): Product {
   let specs: Record<string, string> = {};
@@ -27,7 +27,7 @@ export function formatDbProduct(p: any): Product {
 
   const variants = p.variants
     ? p.variants.map((v: any) => ({
-        variant_type: v.variantType,
+        variant_type: v.variantType || v.variant_type,
         value: v.value,
         stock: v.stock
       }))
@@ -39,17 +39,17 @@ export function formatDbProduct(p: any): Product {
     slug: p.slug,
     sku: p.sku,
     brand: p.brand,
-    category_id: p.categoryId,
-    price: p.price,
-    mrp: p.mrp,
-    stock: p.stock,
+    category_id: p.categoryId || p.category_id,
+    price: Number(p.price),
+    mrp: Number(p.mrp || p.price),
+    stock: Number(p.stock ?? 0),
     status: p.status as "published" | "draft",
     description: p.description,
     specs,
     images: images.length > 0 ? images : ["/images/products/mens-chrono-gold.jpg"],
     badges,
     rating: p.rating || 5.0,
-    reviews_count: p.reviewsCount || 0,
+    reviews_count: p.reviewsCount || p.reviews_count || 0,
     variants,
     created_at: p.createdAt ? (typeof p.createdAt.toISOString === "function" ? p.createdAt.toISOString() : p.createdAt) : new Date().toISOString(),
     updated_at: p.updatedAt ? (typeof p.updatedAt.toISOString === "function" ? p.updatedAt.toISOString() : p.updatedAt) : undefined
@@ -57,46 +57,63 @@ export function formatDbProduct(p: any): Product {
 }
 
 export async function getPublishedProductsRSC(): Promise<Product[]> {
+  const deleted = getDB().deletedProductIds || [];
   try {
     const dbList = await prisma.product.findMany({
-      where: { status: "published" },
+      where: {
+        status: "published",
+        id: { notIn: deleted },
+        slug: { notIn: deleted }
+      },
       include: { variants: true },
       orderBy: { createdAt: "desc" }
     });
-    if (dbList && dbList.length > 0) {
+
+    if (Array.isArray(dbList) && dbList.length > 0) {
       return dbList.map(formatDbProduct);
     }
   } catch (err) {
-    console.warn("Prisma getPublishedProductsRSC fallback to static seed:", err);
+    console.warn("Prisma getPublishedProductsRSC fallback:", err);
   }
+
+  // Fallback to local store, strictly filtering out drafts and deleted products
   return getPublishedProducts();
 }
 
 export async function getProductBySlugRSC(slug: string): Promise<Product | null> {
+  const deleted = getDB().deletedProductIds || [];
+  if (deleted.includes(slug)) return null;
+
   try {
     const p = await prisma.product.findUnique({
       where: { slug },
       include: { variants: true }
     });
     if (p) {
+      if (deleted.includes(p.id) || deleted.includes(p.slug)) return null;
       if (p.status !== "published") return null;
       return formatDbProduct(p);
     }
   } catch (err) {
     console.warn("Prisma getProductBySlugRSC fallback:", err);
   }
+
   const fallback = getProductBySlug(slug);
-  if (!fallback || fallback.status !== "published") return null;
+  if (!fallback || fallback.status !== "published" || deleted.includes(fallback.id) || deleted.includes(fallback.slug)) {
+    return null;
+  }
   return fallback;
 }
 
 export async function getRelatedProductsRSC(product: Product, limit = 4): Promise<Product[]> {
+  const deleted = getDB().deletedProductIds || [];
   try {
     const dbList = await prisma.product.findMany({
       where: {
         status: "published",
         categoryId: product.category_id,
-        id: { not: product.id }
+        id: { not: product.id, notIn: deleted },
+        slug: { notIn: deleted }
       },
       take: limit,
       include: { variants: true }

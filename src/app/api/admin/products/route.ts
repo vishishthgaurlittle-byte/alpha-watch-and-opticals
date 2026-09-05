@@ -1,17 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
-import { getAllProducts, upsertProduct } from "@/lib/db";
+import { getAllProducts, upsertProduct, getDB } from "@/lib/db";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const auth = await requireAdmin();
   if (!auth.authorized) return auth.response;
 
   try {
+    const deleted = getDB().deletedProductIds || [];
     let products: any[] = [];
 
     try {
       products = await prisma.product.findMany({
+        where: {
+          id: { notIn: deleted },
+          slug: { notIn: deleted }
+        },
         orderBy: { createdAt: "desc" },
         include: {
           category: true,
@@ -22,8 +27,8 @@ export async function GET(req: NextRequest) {
       console.warn("Prisma admin products query failed; using catalog fallback:", dbErr);
     }
 
-    // If products array is empty, populate from default catalog
-    if (!products || products.length === 0) {
+    // If database returned no products AND no products have been deleted yet, populate initial catalog
+    if ((!products || products.length === 0) && deleted.length === 0) {
       const staticProds = getAllProducts();
       products = staticProds.map((p) => ({
         id: p.id,
@@ -58,7 +63,7 @@ export async function GET(req: NextRequest) {
       }));
     }
 
-    return NextResponse.json({ products });
+    return NextResponse.json({ products: products || [] });
   } catch (err: any) {
     console.error("Admin products error:", err);
     return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });
