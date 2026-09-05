@@ -56,13 +56,22 @@ export default function ProductDetail({ product, related }: { product: Product; 
 
   const off = discountPct(product.price, product.mrp);
 
-  const handleAdd = (goCheckout = false) => {
+  const handleAdd = async (goCheckout = false) => {
     if (product.stock <= 0) { toast("This item is out of stock"); return; }
     add(uid, product.id, activeVariant || undefined, qty);
     toast("Added to cart ✓");
     if (goCheckout) {
-      if (!user) { router.push("/login?next=/checkout"); return; }
-      router.push("/checkout");
+      try {
+        const meRes = await fetch("/api/auth/me", { credentials: "include" });
+        const meData = await meRes.json();
+        if (meData?.authenticated) {
+          router.push("/checkout");
+        } else {
+          router.push("/login?next=/checkout");
+        }
+      } catch {
+        router.push("/login?next=/checkout");
+      }
     }
   };
 

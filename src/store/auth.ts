@@ -6,7 +6,13 @@ import { insforge } from "@/lib/insforge";
 interface AuthState {
   user: User | null;
   hydrated: boolean;
-  register: (d: { name: string; email: string; phone?: string; password: string }) => Promise<string | null>;
+  register: (d: {
+    name: string;
+    email: string;
+    phone?: string;
+    password: string;
+    confirmPassword?: string;
+  }) => Promise<{ error?: string; needsVerification?: boolean; message?: string }>;
   login: (email: string, password: string) => Promise<string | null>;
   googleLogin: (p: { email: string; name: string; picture?: string; id?: string }) => void;
   logout: () => Promise<void>;
@@ -38,28 +44,34 @@ export const useAuth = create<AuthState>((set, get) => ({
       if (typeof window !== "undefined") {
         const { data } = await insforge.auth.getCurrentUser();
         if (data?.user) {
-          const u = data.user;
-          const email = u.email || "";
-          const name = (u as any).profile?.name || (u as any).name || (email ? email.split("@")[0] : "Customer");
-          const picture = (u as any).profile?.avatar_url || (u as any).avatar_url || "";
-          set({
-            user: {
-              id: u.id || "usr-" + Date.now().toString(36),
-              name,
-              email,
-              role: (u as any).role || "customer",
-              avatar: picture || null,
-              created_at: new Date().toISOString()
-            } as any,
-            hydrated: true
+          const syncRes = await fetch("/api/auth/session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              id: data.user.id,
+              email: data.user.email,
+              name: (data.user as any).profile?.name || data.user.email?.split("@")[0],
+              avatar: (data.user as any).profile?.avatar_url || null
+            })
           });
-          return;
+          if (syncRes.ok) {
+            const syncData = await syncRes.json();
+            if (syncData.user) {
+              set({ user: syncData.user, hydrated: true });
+              return;
+            }
+          }
         }
       }
     } catch {
       // ignore
     }
 
+    // If server says not authenticated, do not retain fake local user
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("awopticals_session");
+    }
     set({ user: null, hydrated: true });
   },
 
@@ -89,12 +101,17 @@ export const useAuth = create<AuthState>((set, get) => ({
       });
       const data = await res.json();
       if (!res.ok) {
-        return data.error || "Failed to create account";
+        return { error: data.error || "Failed to create account." };
       }
-      set({ user: data.user });
-      return null;
+      if (data.needsVerification) {
+        return { needsVerification: true, message: data.message || "Please check your email to verify your account." };
+      }
+      if (data.user) {
+        set({ user: data.user });
+      }
+      return {};
     } catch (err: any) {
-      return err.message || "Network error. Please try again.";
+      return { error: err.message || "Network error. Please try again." };
     }
   },
 
@@ -110,7 +127,9 @@ export const useAuth = create<AuthState>((set, get) => ({
       if (!res.ok) {
         return data.error || "Invalid login credentials";
       }
-      set({ user: data.user });
+      if (data.user) {
+        set({ user: data.user });
+      }
       return null;
     } catch (err: any) {
       return err.message || "Network error during login.";
@@ -118,10 +137,9 @@ export const useAuth = create<AuthState>((set, get) => ({
   },
 
   googleLogin: (p) => {
-    // Map InsForge user into Zustand auth store
     set({
       user: {
-        id: p.id || "usr-" + Date.now().toString(36),
+        id: p.id || "",
         name: p.name,
         email: p.email,
         role: "customer",

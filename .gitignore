@@ -47,3 +47,4 @@ next-env.d.ts
 .vscode/
 live-checklist.js
 qa-audit.js
+insforge-auth.test.js

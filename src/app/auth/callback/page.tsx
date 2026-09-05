@@ -28,11 +28,13 @@ function CallbackHandler() {
         const name = (u as any).profile?.name || (u as any).name || (email ? email.split("@")[0] : "Customer");
         const picture = (u as any).profile?.avatar_url || (u as any).avatar_url || "";
 
+        let role = "customer";
         // Synchronize server session cookie & DB user
         try {
-          await fetch("/api/auth/oauth-sync", {
+          const res = await fetch("/api/auth/session", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            credentials: "include",
             body: JSON.stringify({
               id: u.id,
               email,
@@ -40,11 +42,15 @@ function CallbackHandler() {
               avatar: picture
             })
           });
+          if (res.ok) {
+            const syncData = await res.json();
+            if (syncData.user?.role) role = syncData.user.role;
+          }
         } catch (e) {
           console.warn("Server session sync error:", e);
         }
 
-        // Map InsForge user into the existing zustand auth store
+        // Map InsForge user into the zustand auth store
         useAuth.getState().googleLogin({
           email,
           name,
@@ -58,9 +64,10 @@ function CallbackHandler() {
         }
         toast(`Signed in as ${name} (${email}) ✓`);
 
-        const next = sessionStorage.getItem("aw_oauth_next") || "/account";
+        const next = sessionStorage.getItem("aw_oauth_next") || (role === "admin" ? "/admin" : "/account");
         sessionStorage.removeItem("aw_oauth_next");
-        router.replace(next.startsWith("/") ? next : "/account");
+        const target = next && next.startsWith("/") ? next : (role === "admin" ? "/admin" : "/account");
+        window.location.href = target;
       } catch (err: any) {
         setMsg(err?.message || "Google sign-in did not complete. Try again.");
       }

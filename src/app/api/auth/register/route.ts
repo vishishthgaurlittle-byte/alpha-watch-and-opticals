@@ -1,14 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
-import { hashPassword, setServerSession } from "@/lib/auth";
+import { insforge } from "@/lib/insforge";
+import { setServerSession } from "@/lib/auth";
 
-const registerSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters").max(60),
-  email: z.string().email("Invalid email address"),
-  phone: z.string().regex(/^[6-9]\d{9}$/, "Please enter a valid 10-digit Indian mobile number").optional().or(z.literal("")),
-  password: z.string().min(6, "Password must be at least 6 characters")
-});
+const registerSchema = z
+  .object({
+    name: z.string().min(2, "Name must be at least 2 characters").max(80),
+    email: z.string().email("Invalid email address"),
+    phone: z
+      .string()
+      .regex(/^[6-9]\d{9}$/, "Please enter a valid 10-digit Indian phone number")
+      .optional()
+      .or(z.literal("")),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string().optional()
+  })
+  .refine((data) => !data.confirmPassword || data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"]
+  });
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,54 +36,110 @@ export async function POST(req: NextRequest) {
     const { name, email, phone, password } = parsed.data;
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Check if user already exists
-    const existing = await prisma.user.findUnique({
-      where: { email: normalizedEmail }
+    // 1. Authenticate with InsForge User Service
+    const { data, error } = await insforge.auth.signUp({
+      email: normalizedEmail,
+      password,
+      name: name.trim()
     });
 
-    if (existing) {
+    if (error) {
+      const errMsg = error.message || "";
+      const isDuplicate =
+        (error as any).error === "AUTH_EMAIL_EXISTS" ||
+        (error as any).statusCode === 409 ||
+        errMsg.toLowerCase().includes("exists") ||
+        errMsg.toLowerCase().includes("duplicate") ||
+        errMsg.toLowerCase().includes("already registered");
+
+      if (isDuplicate) {
+        return NextResponse.json(
+          { error: "An account with this email already exists. Please login." },
+          { status: 409 }
+        );
+      }
+
       return NextResponse.json(
-        { error: "An account with this email already exists. Please login." },
-        { status: 409 }
+        { error: error.message || "Failed to create account" },
+        { status: 400 }
       );
     }
 
-    // Hash password with bcrypt cost 12
-    const passwordHash = await hashPassword(password);
+    // 2. Email verification check
+    if (data?.requireEmailVerification) {
+      return NextResponse.json(
+        {
+          ok: true,
+          needsVerification: true,
+          message: "Check your email to verify, then login."
+        },
+        { status: 201 }
+      );
+    }
 
-    const user = await prisma.user.create({
-      data: {
-        name: name.trim(),
-        email: normalizedEmail,
-        phone: phone || null,
-        passwordHash,
-        role: "customer",
-        provider: "credentials"
-      }
-    });
+    if (!data?.user) {
+      return NextResponse.json(
+        { error: "Account creation did not return a user record." },
+        { status: 400 }
+      );
+    }
 
-    // Set signed HttpOnly secure cookie
+    const insforgeUser = data.user;
+    const adminEmail = (process.env.ADMIN_EMAIL || "admin@alpha.com").toLowerCase();
+    const role = normalizedEmail === adminEmail ? "admin" : "customer";
+    const displayName = (insforgeUser as any).profile?.name || name.trim() || normalizedEmail.split("@")[0];
+    const avatar = (insforgeUser as any).profile?.avatar_url || null;
+
+    // 3. Set HttpOnly JWT Session Cookie
     await setServerSession({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role
+      id: insforgeUser.id,
+      email: normalizedEmail,
+      name: displayName,
+      role,
+      avatar
     });
 
-    return NextResponse.json({
-      success: true,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role
-      }
-    });
-  } catch (err: any) {
-    console.error("Register error:", err);
+    // 4. Mirror profile to Prisma (best-effort; failures must never block 200 response)
+    try {
+      await prisma.user.upsert({
+        where: { id: insforgeUser.id },
+        update: {
+          name: displayName,
+          email: normalizedEmail,
+          phone: phone || null,
+          role,
+          avatar
+        },
+        create: {
+          id: insforgeUser.id,
+          name: displayName,
+          email: normalizedEmail,
+          phone: phone || null,
+          role,
+          avatar
+        }
+      });
+    } catch (dbErr) {
+      console.warn("Prisma user mirror warning (non-fatal):", dbErr);
+    }
+
     return NextResponse.json(
-      { error: "Failed to create account. Please try again." },
+      {
+        ok: true,
+        user: {
+          id: insforgeUser.id,
+          name: displayName,
+          email: normalizedEmail,
+          role,
+          avatar
+        }
+      },
+      { status: 200 }
+    );
+  } catch (err: any) {
+    console.error("Registration unhandled error:", err);
+    return NextResponse.json(
+      { error: err.message || "An unexpected error occurred during registration." },
       { status: 500 }
     );
   }

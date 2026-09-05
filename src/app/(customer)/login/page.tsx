@@ -23,8 +23,8 @@ function LoginContent() {
     if (user?.id) {
       mergeGuestCart(user.id);
     }
-    const target = next || (user?.role === "admin" ? "/admin" : "/account");
-    router.push(target);
+    const target = next && next.startsWith("/") ? next : user?.role === "admin" ? "/admin" : "/account";
+    window.location.href = target;
   };
 
   const handleGoogleLogin = async () => {
@@ -43,15 +43,7 @@ function LoginContent() {
 
       if (error) {
         setGoogleLoading(false);
-        const isNotConfigured =
-          error.message?.toLowerCase().includes("not enabled") ||
-          error.message?.toLowerCase().includes("not configured") ||
-          error.message?.toLowerCase().includes("provider");
-        setErr(
-          isNotConfigured
-            ? "Google is not enabled on InsForge. Open InsForge dashboard → Auth Methods → Google, paste Client ID/Secret, add redirect URLs."
-            : (error.message || "Google sign-in failed. Check InsForge Google provider is enabled.")
-        );
+        setErr(error.message || "Google sign-in failed. Please try again.");
       }
     } catch (e: any) {
       setGoogleLoading(false);
@@ -112,7 +104,7 @@ function LoginContent() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
+              placeholder="Email address"
               className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
             />
           </div>

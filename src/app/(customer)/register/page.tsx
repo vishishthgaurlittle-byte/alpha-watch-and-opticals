@@ -15,6 +15,7 @@ function RegisterContent() {
   const register = useAuth((s) => s.register);
   const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", confirm: "" });
   const [err, setErr] = useState("");
+  const [infoMsg, setInfoMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -34,15 +35,7 @@ function RegisterContent() {
 
       if (error) {
         setGoogleLoading(false);
-        const isNotConfigured =
-          error.message?.toLowerCase().includes("not enabled") ||
-          error.message?.toLowerCase().includes("not configured") ||
-          error.message?.toLowerCase().includes("provider");
-        setErr(
-          isNotConfigured
-            ? "Google is not enabled on InsForge. Open InsForge dashboard → Auth Methods → Google, paste Client ID/Secret, add redirect URLs."
-            : (error.message || "Google sign-in failed. Check InsForge Google provider is enabled.")
-        );
+        setErr(error.message || "Google sign-in failed. Please try again.");
       }
     } catch (e: any) {
       setGoogleLoading(false);
@@ -53,26 +46,36 @@ function RegisterContent() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErr("");
+    setInfoMsg("");
+
+    if (form.password.length < 8) {
+      setErr("Password must be at least 8 characters long.");
+      return;
+    }
     if (form.password !== form.confirm) {
       setErr("Passwords do not match.");
       return;
     }
-    if (form.password.length < 6) {
-      setErr("Password must be at least 6 characters.");
-      return;
-    }
+
     setBusy(true);
 
     try {
       const res = await register({
-        name: form.name,
-        email: form.email,
-        phone: form.phone || undefined,
-        password: form.password
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone ? form.phone.trim() : undefined,
+        password: form.password,
+        confirmPassword: form.confirm
       });
 
-      if (res) {
-        setErr(res);
+      if (res.error) {
+        setErr(res.error);
+        setBusy(false);
+        return;
+      }
+
+      if (res.needsVerification) {
+        setInfoMsg(res.message || "Check your email to verify your account, then log in.");
         setBusy(false);
         return;
       }
@@ -82,9 +85,10 @@ function RegisterContent() {
         mergeGuestCart(u.id);
       }
       toast("Account created successfully ✓");
-      window.location.href = next || "/account";
+      const target = next && next.startsWith("/") ? next : "/account";
+      window.location.href = target;
     } catch (error: any) {
-      setErr(error?.message || "Account creation failed");
+      setErr(error?.message || "Failed to create account. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -108,7 +112,7 @@ function RegisterContent() {
             <span className="font-serif text-2xl font-bold text-gold">A</span>
           </div>
           <h1 className="font-serif text-2xl text-ivory">Create Account</h1>
-          <p className="text-ivory/60 text-xs mt-1">Join the Alpha Watch &amp; Opticals family</p>
+          <p className="text-ivory/60 text-xs mt-1">Join Alpha Watch &amp; Opticals</p>
         </div>
 
         {err && (
@@ -117,70 +121,84 @@ function RegisterContent() {
           </div>
         )}
 
-        <form onSubmit={submit} className="space-y-3">
-          <div>
-            <label className="block text-ivory/70 text-xs mb-1">Full name</label>
-            <input
-              required
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="Full name"
-              className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
-            />
+        {infoMsg && (
+          <div className="bg-emerald/20 text-emerald rounded-xl p-4 mb-5 border border-emerald/30 text-sm">
+            <p className="font-semibold mb-1">✓ Verification required</p>
+            <p>{infoMsg}</p>
+            <Link href={`/login${next ? "?next=" + next : ""}`} className="inline-block mt-2 font-bold underline">
+              Go to Sign In →
+            </Link>
           </div>
-          <div>
-            <label className="block text-ivory/70 text-xs mb-1">Email</label>
-            <input
-              type="email"
-              required
-              value={form.email}
-              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              placeholder="Email"
-              className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
-            />
-          </div>
-          <div>
-            <label className="block text-ivory/70 text-xs mb-1">Phone</label>
-            <input
-              type="tel"
-              value={form.phone}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))
-              }
-              placeholder="10-digit mobile number"
-              className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
-            />
-          </div>
-          <div>
-            <label className="block text-ivory/70 text-xs mb-1">Password</label>
-            <input
-              type="password"
-              required
-              value={form.password}
-              onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-              placeholder="Password"
-              className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
-            />
-          </div>
-          <div>
-            <label className="block text-ivory/70 text-xs mb-1">Confirm password</label>
-            <input
-              type="password"
-              required
-              value={form.confirm}
-              onChange={(e) => setForm((f) => ({ ...f, confirm: e.target.value }))}
-              placeholder="Confirm password"
-              className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={busy}
-            className="btn-gold w-full py-3.5 rounded-full font-semibold disabled:opacity-60 shadow-md mt-2"
-          >
-            {busy ? "Creating Account..." : "Create Account"}
-          </button>
-        </form>
+        )}
+
+        {!infoMsg && (
+          <form onSubmit={submit} className="space-y-3">
+            <div>
+              <label className="block text-ivory/70 text-xs mb-1">Full name</label>
+              <input
+                required
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="Full name"
+                className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
+              />
+            </div>
+            <div>
+              <label className="block text-ivory/70 text-xs mb-1">Email</label>
+              <input
+                type="email"
+                required
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                placeholder="Email address"
+                className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
+              />
+            </div>
+            <div>
+              <label className="block text-ivory/70 text-xs mb-1">Phone</label>
+              <input
+                type="tel"
+                value={form.phone}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))
+                }
+                placeholder="10-digit mobile number"
+                className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
+              />
+            </div>
+            <div>
+              <label className="block text-ivory/70 text-xs mb-1">Password (min 8 characters)</label>
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={form.password}
+                onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                placeholder="Minimum 8 characters"
+                className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
+              />
+            </div>
+            <div>
+              <label className="block text-ivory/70 text-xs mb-1">Confirm password</label>
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={form.confirm}
+                onChange={(e) => setForm((f) => ({ ...f, confirm: e.target.value }))}
+                placeholder="Confirm password"
+                className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={busy}
+              className="btn-gold w-full py-3.5 rounded-full font-semibold disabled:opacity-60 shadow-md mt-2"
+            >
+              {busy ? "Creating Account..." : "Create Account"}
+            </button>
+          </form>
+        )}
 
         <div className="flex items-center gap-3 my-6">
           <div className="flex-1 h-px bg-white/15" />
@@ -213,6 +231,7 @@ function RegisterContent() {
           </svg>
           {googleLoading ? "Connecting to Google..." : "Continue with Google"}
         </button>
+
         <p className="text-center text-xs text-ivory/60 mt-6">
           Already have an account?{" "}
           <Link href={`/login${next ? "?next=" + next : ""}`} className="text-gold underline font-medium">

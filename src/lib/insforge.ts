@@ -1,9 +1,8 @@
-"use client";
 import { createClient } from "@insforge/sdk";
 
 export const insforge = createClient({
   baseUrl: (process.env.NEXT_PUBLIC_INSFORGE_URL || "https://4bnre66i.ap-southeast.insforge.app").replace(/\/$/, ""),
-  anonKey: process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY || process.env.NEXT_PUBLIC_INSFORGE_API_KEY || "",
+  anonKey: process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY || process.env.NEXT_PUBLIC_INSFORGE_API_KEY || "ik_2d0ab4978c75f9e7f7e0e24e190ef1d6",
 });
 
 export function appOrigin() {

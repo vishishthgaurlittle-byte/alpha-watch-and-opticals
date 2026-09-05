@@ -119,14 +119,14 @@ export default function AccountPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="font-serif text-3xl md:text-4xl font-bold text-navy">My Account</h1>
-            <p className="text-navy/60 mt-1">Welcome back, {user.name}</p>
+            <p className="text-navy/60 mt-1">Welcome back, {user.name} ({user.email})</p>
           </div>
           <button
             onClick={() => {
               logout();
-              router.push("/");
+              window.location.href = "/";
             }}
-            className="text-sm text-navy/50 hover:text-red-500 font-medium"
+            className="text-sm bg-red-50 text-red-600 hover:bg-red-100 font-semibold px-4 py-2 rounded-full transition"
           >
             Logout
           </button>
@@ -141,6 +141,7 @@ export default function AccountPage() {
                   {user.name[0]?.toUpperCase()}
                 </div>
                 <div className="text-sm font-semibold text-navy mt-2">{user.name}</div>
+                <div className="text-[10px] text-navy/40 font-mono truncate px-1" title={user.id}>{user.id}</div>
               </div>
               {tabs.map((t) => (
                 <button
