@@ -1,16 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { sendShopNotification } from "@/lib/mailer";
 import { saveFallbackOrder } from "@/lib/orderStore";
-import { getAllProducts } from "@/lib/db";
-
-const orderItemSchema = z.object({
-  productId: z.string().min(1),
-  quantity: z.number().int().min(1).max(50).default(1),
-  variant: z.string().optional().nullable()
-});
+import { getAllProducts, addPaymentProof } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   try {
@@ -41,6 +34,15 @@ export async function POST(req: NextRequest) {
     const sanitizedPhone = rawPhone.replace(/\D/g, "").slice(-10) || "9044477735";
 
     const deliveryMethod = rawBody.deliveryMethod === "delivery" ? "delivery" : "pickup";
+    const paymentMethod = rawBody.paymentMethod || "upi";
+    const upiTransactionId = rawBody.upiTransactionId || rawBody.utr || null;
+    const paymentProofUrl = rawBody.paymentProofUrl || rawBody.proofImage || null;
+
+    let initialPaymentStatus = "pending";
+    if (paymentProofUrl || (paymentMethod === "upi" && upiTransactionId)) {
+      initialPaymentStatus = "proof_submitted";
+    }
+
     const address = rawBody.address || null;
     const itemsRaw = Array.isArray(rawBody.items) && rawBody.items.length > 0 ? rawBody.items : [];
 
@@ -216,6 +218,13 @@ export async function POST(req: NextRequest) {
     const orderId = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const nowIso = new Date().toISOString();
 
+    const notesObj: any = {
+      customerNote: rawBody.notes || null,
+      paymentMethod,
+      upiTransactionId,
+      paymentProofUrl
+    };
+
     let createdOrder: any = null;
 
     // 5. Attempt database write in Prisma
@@ -229,7 +238,7 @@ export async function POST(req: NextRequest) {
             userName: customerName,
             userPhone: sanitizedPhone,
             status: "pending",
-            paymentStatus: "pending",
+            paymentStatus: initialPaymentStatus,
             deliveryMethod,
             subtotal,
             discount,
@@ -237,7 +246,8 @@ export async function POST(req: NextRequest) {
             total: finalTotal,
             couponCode: validatedCoupon ? validatedCoupon.code : couponCode || null,
             shippingAddress: address ? JSON.stringify(address) : null,
-            notes: rawBody.notes || null,
+            razorpayPaymentId: upiTransactionId || null,
+            notes: JSON.stringify(notesObj),
             items: {
               create: itemsToCreate
             }
@@ -277,7 +287,7 @@ export async function POST(req: NextRequest) {
         userName: customerName,
         userPhone: sanitizedPhone,
         status: "pending",
-        paymentStatus: "pending",
+        paymentStatus: initialPaymentStatus,
         deliveryMethod,
         subtotal,
         discount,
@@ -286,8 +296,11 @@ export async function POST(req: NextRequest) {
         couponCode: validatedCoupon ? validatedCoupon.code : couponCode || null,
         shippingAddress: address ? JSON.stringify(address) : null,
         razorpayOrderId: null,
-        razorpayPaymentId: null,
-        notes: rawBody.notes || null,
+        razorpayPaymentId: upiTransactionId || null,
+        paymentProofUrl,
+        upiTransactionId,
+        paymentAdminNote: null,
+        notes: JSON.stringify(notesObj),
         createdAt: nowIso,
         updatedAt: nowIso,
         items: itemsToCreate.map((it, idx) => ({
@@ -297,8 +310,22 @@ export async function POST(req: NextRequest) {
       };
     }
 
+    // Attach enriched fields to memory order
+    const enrichedOrder = {
+      ...createdOrder,
+      paymentProofUrl,
+      upiTransactionId,
+      paymentAdminNote: null
+    };
+
     // Save to memory cache for zero-downtime access
-    saveFallbackOrder(createdOrder);
+    saveFallbackOrder(enrichedOrder);
+
+    if (paymentProofUrl) {
+      try {
+        addPaymentProof(createdOrder.id, validUserId || "guest", paymentProofUrl);
+      } catch {}
+    }
 
     // 6. Send asynchronous shop notification
     sendShopNotification(
@@ -307,6 +334,8 @@ export async function POST(req: NextRequest) {
        <p><strong>Order Number:</strong> ${orderNumber}</p>
        <p><strong>Customer:</strong> ${customerName} (${sanitizedPhone})</p>
        <p><strong>Email:</strong> ${customerEmail}</p>
+       <p><strong>Payment Status:</strong> ${initialPaymentStatus === "proof_submitted" ? "UPI Proof Submitted (Awaiting Admin Approval)" : "Pending Payment"}</p>
+       ${upiTransactionId ? `<p><strong>UPI Reference / UTR:</strong> ${upiTransactionId}</p>` : ""}
        <p><strong>Delivery Method:</strong> ${
          deliveryMethod === "pickup"
            ? "In-Store Pickup (Degree College Chauraha)"
@@ -322,7 +351,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       ok: true,
-      order: createdOrder
+      order: enrichedOrder
     });
   } catch (err: any) {
     console.error("Order creation fatal error:", err);

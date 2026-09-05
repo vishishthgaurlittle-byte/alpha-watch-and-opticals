@@ -18,6 +18,9 @@ export interface StoredOrder {
   shippingAddress: string | null;
   razorpayOrderId: string | null;
   razorpayPaymentId: string | null;
+  paymentProofUrl?: string | null;
+  upiTransactionId?: string | null;
+  paymentAdminNote?: string | null;
   notes: string | null;
   createdAt: string;
   updatedAt: string;

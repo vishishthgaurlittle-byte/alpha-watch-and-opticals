@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/store/auth";
@@ -8,14 +8,22 @@ import { toast } from "@/store/ui";
 import { SITE, formatINR } from "@/lib/site";
 import { getProductById } from "@/lib/db";
 
+interface PaymentSettings {
+  upiId: string;
+  upiPayeeName: string;
+  upiQrImage: string;
+  upiEnabled: boolean;
+  upiInstructions: string;
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
   const user = useAuth((s) => s.user);
-  const hydrated = useAuth((s) => s.hydrated);
   const { items, clear } = useCart();
   const uid = user ? user.id : "guest";
 
   const [deliveryMethod, setDeliveryMethod] = useState<"pickup" | "delivery">("pickup");
+  const [paymentMethod, setPaymentMethod] = useState<"upi" | "cod">("upi");
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
@@ -28,11 +36,41 @@ export default function CheckoutPage() {
     notes: ""
   });
 
+  // UPI payment fields
+  const [upiSettings, setUpiSettings] = useState<PaymentSettings>({
+    upiId: "9044477735@upi",
+    upiPayeeName: "Mohd. Shoeb - Alpha Watch & Opticals",
+    upiQrImage: "",
+    upiEnabled: true,
+    upiInstructions:
+      "1. Scan the QR code using Google Pay, PhonePe, Paytm, or BHIM.\n2. Pay the exact order amount.\n3. Enter the 12-digit UTR/Reference number and upload your transaction screenshot.\n4. Our team will verify and dispatch your order promptly."
+  });
+  const [utrNumber, setUtrNumber] = useState("");
+  const [screenshotDataUrl, setScreenshotDataUrl] = useState<string>("");
+  const [screenshotFileName, setScreenshotFileName] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [couponCode, setCouponCode] = useState("");
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+
+  // Fetch shop payment settings
+  useEffect(() => {
+    async function fetchPaySettings() {
+      try {
+        const res = await fetch("/api/payment-settings");
+        const data = await res.json();
+        if (res.ok && data) {
+          setUpiSettings(data);
+        }
+      } catch {
+        // fallback to default
+      }
+    }
+    fetchPaySettings();
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -58,6 +96,19 @@ export default function CheckoutPage() {
   const baseSubtotal = itemsList.reduce((acc, x) => acc + (x.p ? x.p.price : 0) * x.quantity, 0);
   const shipping = deliveryMethod === "delivery" && baseSubtotal < 2000 ? 100 : 0;
   const finalTotal = Math.max(0, baseSubtotal - couponDiscount + shipping);
+
+  // Dynamic QR code for exact total
+  const dynamicQrCode = upiSettings.upiQrImage
+    ? upiSettings.upiQrImage
+    : `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
+        `upi://pay?pa=${upiSettings.upiId}&pn=${encodeURIComponent(
+          upiSettings.upiPayeeName
+        )}&am=${finalTotal}&cu=INR&tn=Order%20Alpha%20Watch`
+      )}`;
+
+  const upiIntentUri = `upi://pay?pa=${upiSettings.upiId}&pn=${encodeURIComponent(
+    upiSettings.upiPayeeName
+  )}&am=${finalTotal}&cu=INR&tn=Order%20Alpha%20Watch`;
 
   const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +137,32 @@ export default function CheckoutPage() {
     }
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast("Image file is too large (max 5MB)");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (uploadEvent) => {
+      const result = uploadEvent.target?.result as string;
+      setScreenshotDataUrl(result);
+      setScreenshotFileName(file.name);
+      toast("Payment screenshot attached! ✓");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const copyUpiId = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(upiSettings.upiId);
+      toast(`Copied UPI ID "${upiSettings.upiId}" to clipboard ✓`);
+    }
+  };
+
   const handlePlaceOrder = async () => {
     if (items.length === 0) {
       toast("Your cart is empty");
@@ -107,6 +184,11 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (paymentMethod === "upi" && !screenshotDataUrl && !utrNumber.trim()) {
+      toast("Please upload your UPI payment screenshot or enter the 12-digit UTR / Reference number");
+      return;
+    }
+
     setIsPlacingOrder(true);
 
     try {
@@ -115,6 +197,9 @@ export default function CheckoutPage() {
         email: formData.email,
         phone: formData.phone,
         deliveryMethod,
+        paymentMethod,
+        upiTransactionId: utrNumber.trim() || undefined,
+        paymentProofUrl: screenshotDataUrl || undefined,
         address:
           deliveryMethod === "delivery"
             ? {
@@ -146,7 +231,7 @@ export default function CheckoutPage() {
       }
 
       clear(uid);
-      toast("Order placed successfully! ✓");
+      toast("Order submitted for admin approval! ✓");
       router.push(`/order-confirmation/${data.order.id}`);
     } catch (err: any) {
       toast(err.message || "Could not complete order. Please try again.");
@@ -181,7 +266,7 @@ export default function CheckoutPage() {
           <div className="lg:col-span-3 space-y-6">
             {/* Customer Information */}
             <div className="bg-white rounded-2xl p-6 border border-navy/5 shadow-sm">
-              <h3 className="font-serif text-lg text-navy mb-4">Customer Details</h3>
+              <h3 className="font-serif text-lg text-navy mb-4">1. Customer Details</h3>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs text-navy/60 mb-1 block">Full Name *</label>
@@ -222,7 +307,7 @@ export default function CheckoutPage() {
 
             {/* Delivery Method */}
             <div className="bg-white rounded-2xl p-6 border border-navy/5 shadow-sm">
-              <h3 className="font-serif text-lg text-navy mb-4">Fulfillment Option</h3>
+              <h3 className="font-serif text-lg text-navy mb-4">2. Fulfillment Option</h3>
               <div className="grid sm:grid-cols-2 gap-3">
                 <button
                   type="button"
@@ -233,7 +318,7 @@ export default function CheckoutPage() {
                 >
                   <div className="text-2xl mb-1">🏬</div>
                   <div className="font-semibold text-navy text-sm">Store Pickup &amp; Trial</div>
-                  <div className="text-xs text-navy/50 mt-1">Chowdhary Complex, Raebareli · Pay on counter</div>
+                  <div className="text-xs text-navy/50 mt-1">Chowdhary Complex, Raebareli · Free fitting</div>
                 </button>
                 <button
                   type="button"
@@ -244,7 +329,7 @@ export default function CheckoutPage() {
                 >
                   <div className="text-2xl mb-1">🚚</div>
                   <div className="font-semibold text-navy text-sm">Home Delivery</div>
-                  <div className="text-xs text-navy/50 mt-1">Dispatched to your address · Cash/UPI on delivery</div>
+                  <div className="text-xs text-navy/50 mt-1">Directly dispatched to your doorstep</div>
                 </button>
               </div>
             </div>
@@ -304,6 +389,168 @@ export default function CheckoutPage() {
                 </div>
               </div>
             )}
+
+            {/* 3. Primary Payment Section - UPI First with Screenshot Upload */}
+            <div className="bg-white rounded-2xl p-6 border-2 border-gold/40 shadow-md">
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <div>
+                  <h3 className="font-serif text-lg text-navy font-bold flex items-center gap-2">
+                    <span>3. Payment Method</span>
+                    <span className="bg-gold text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded-full shadow-xs">
+                      UPI First
+                    </span>
+                  </h3>
+                  <p className="text-xs text-navy/60 mt-0.5">
+                    Pay securely via UPI (Google Pay, PhonePe, Paytm, BHIM) and upload screenshot proof for fast approval.
+                  </p>
+                </div>
+              </div>
+
+              {/* Payment Method Selector */}
+              <div className="grid sm:grid-cols-2 gap-3 mb-6">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("upi")}
+                  className={`rounded-xl p-4 text-left border-2 transition ${
+                    paymentMethod === "upi" ? "border-gold bg-gold/10 ring-2 ring-gold/30" : "border-navy/10 hover:border-gold/40"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-navy text-sm">📱 UPI / QR Transfer</span>
+                    <span className="text-xs bg-emerald/15 text-emerald font-bold px-2 py-0.5 rounded">Fastest</span>
+                  </div>
+                  <div className="text-xs text-navy/60">Pay via GPay, PhonePe, Paytm + Upload Screenshot</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("cod")}
+                  className={`rounded-xl p-4 text-left border-2 transition ${
+                    paymentMethod === "cod" ? "border-gold bg-gold/10 ring-2 ring-gold/30" : "border-navy/10 hover:border-gold/40"
+                  }`}
+                >
+                  <div className="font-bold text-navy text-sm mb-1">
+                    {deliveryMethod === "pickup" ? "🏬 Pay at Shop Counter" : "💵 Cash on Delivery"}
+                  </div>
+                  <div className="text-xs text-navy/60">
+                    {deliveryMethod === "pickup" ? "Pay via Cash/Card when collecting order" : "Pay cash to delivery agent upon arrival"}
+                  </div>
+                </button>
+              </div>
+
+              {/* UPI PAYMENT BOX & PROOF UPLOAD */}
+              {paymentMethod === "upi" && (
+                <div className="bg-navy/5 rounded-2xl p-5 border border-navy/10 space-y-5">
+                  <div className="flex flex-col md:flex-row items-center gap-6">
+                    {/* QR Code */}
+                    <div className="bg-white p-3 rounded-2xl border border-navy/10 shadow-sm shrink-0 text-center">
+                      <img
+                        src={dynamicQrCode}
+                        alt="Alpha Watch UPI QR"
+                        className="w-40 h-40 object-contain rounded-xl mx-auto mb-2"
+                      />
+                      <div className="text-[11px] font-bold text-navy">Pay ₹{finalTotal.toLocaleString("en-IN")}</div>
+                      <div className="text-[9px] text-navy/50">Scan with any UPI app</div>
+                    </div>
+
+                    {/* UPI Details */}
+                    <div className="flex-1 space-y-3 w-full">
+                      <div className="p-3 bg-white rounded-xl border border-navy/10 space-y-1">
+                        <div className="text-[11px] text-navy/50 font-medium">Shop UPI ID:</div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-mono font-bold text-navy text-sm">{upiSettings.upiId}</span>
+                          <button
+                            type="button"
+                            onClick={copyUpiId}
+                            className="text-xs bg-navy/5 hover:bg-gold hover:text-white text-navy font-semibold px-2.5 py-1 rounded-lg border border-navy/15 transition"
+                          >
+                            Copy ID
+                          </button>
+                        </div>
+                        <div className="text-[11px] text-navy/60">Payee: <strong>{upiSettings.upiPayeeName}</strong></div>
+                      </div>
+
+                      <a
+                        href={upiIntentUri}
+                        className="block w-full text-center py-2.5 rounded-xl bg-navy text-ivory text-xs font-bold hover:bg-gold transition shadow-xs"
+                      >
+                        ⚡ Open &amp; Pay in UPI App (Mobile)
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Step 2: UTR Reference Number */}
+                  <div>
+                    <label className="text-xs font-semibold text-navy block mb-1.5">
+                      Step 1: Enter 12-Digit UPI Reference / UTR Number *
+                    </label>
+                    <input
+                      value={utrNumber}
+                      onChange={(e) => setUtrNumber(e.target.value.trim())}
+                      placeholder="e.g. 423589123456 (Found on payment success screen)"
+                      className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 font-mono text-sm"
+                    />
+                  </div>
+
+                  {/* Step 3: Screenshot Upload */}
+                  <div>
+                    <label className="text-xs font-semibold text-navy block mb-1.5">
+                      Step 2: Upload Payment Screenshot Proof *
+                    </label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+
+                    {screenshotDataUrl ? (
+                      <div className="p-3 bg-white rounded-xl border-2 border-emerald/40 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={screenshotDataUrl}
+                            alt="Uploaded Screenshot"
+                            className="w-14 h-14 object-cover rounded-lg border border-navy/10"
+                          />
+                          <div>
+                            <div className="text-xs font-bold text-navy truncate max-w-[200px]">
+                              {screenshotFileName || "screenshot.jpg"}
+                            </div>
+                            <div className="text-[11px] text-emerald font-semibold">✓ Screenshot Attached</div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setScreenshotDataUrl("");
+                            setScreenshotFileName("");
+                            if (fileInputRef.current) fileInputRef.current.value = "";
+                          }}
+                          className="text-xs text-red-500 hover:underline font-semibold"
+                        >
+                          Change
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full py-4 border-2 border-dashed border-navy/20 hover:border-gold rounded-xl bg-white flex flex-col items-center justify-center text-navy/70 hover:text-gold transition group"
+                      >
+                        <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">📸</span>
+                        <span className="text-xs font-bold text-navy">Click to Upload Payment Screenshot</span>
+                        <span className="text-[10px] text-navy/40 mt-0.5">JPG, PNG, WEBP (Max 5MB)</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="p-3 bg-gold/10 rounded-xl text-[11px] text-navy/70 leading-relaxed border border-gold/20">
+                    🛡️ <strong>Instant Approval Process:</strong> Once submitted, our store admin verifies your transaction and marks your order Confirmed with official tracking details.
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Order Note */}
             <div className="bg-white rounded-2xl p-6 border border-navy/5 shadow-sm">
@@ -393,7 +640,9 @@ export default function CheckoutPage() {
                 className="btn-gold w-full py-4 rounded-full font-bold text-base disabled:opacity-60 shadow-md"
               >
                 {isPlacingOrder
-                  ? "Confirming Order..."
+                  ? "Submitting Order for Approval..."
+                  : paymentMethod === "upi"
+                  ? "Submit Order & UPI Proof for Approval"
                   : deliveryMethod === "pickup"
                   ? "Reserve & Pay at Store Counter"
                   : "Confirm Order for Delivery"}

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { formatINR, dateFmt, timeFmt } from "@/lib/site";
 import { toast } from "@/store/ui";
 
@@ -19,6 +20,7 @@ export default function AdminOrders() {
   const [filter, setFilter] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const fetchOrders = async () => {
     try {
@@ -63,7 +65,7 @@ export default function AdminOrders() {
   const updatePaymentStatus = async (id: string, paymentStatus: string) => {
     setUpdating(true);
     try {
-      const res = await fetch(`/api/admin/orders/${id}`, {
+      const res = await fetch(`/api/admin/payments/${id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ paymentStatus })
@@ -79,10 +81,30 @@ export default function AdminOrders() {
     }
   };
 
+  // Extract payment proof and UTR from notes if present
+  let selNotesObj: any = {};
+  if (sel?.notes && typeof sel.notes === "string" && sel.notes.startsWith("{")) {
+    try {
+      selNotesObj = JSON.parse(sel.notes);
+    } catch {}
+  }
+  const selProofUrl = sel?.paymentProofUrl || selNotesObj?.paymentProofUrl || null;
+  const selUtr = sel?.upiTransactionId || selNotesObj?.upiTransactionId || sel?.razorpayPaymentId || null;
+
   return (
     <div>
-      <h1 className="font-serif text-2xl md:text-3xl font-bold text-navy mb-1">Store Orders</h1>
-      <p className="text-navy/50 text-sm mb-6">{orders.length} total orders recorded</p>
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div>
+          <h1 className="font-serif text-2xl md:text-3xl font-bold text-navy mb-1">Store Orders</h1>
+          <p className="text-navy/50 text-sm">{orders.length} total orders recorded</p>
+        </div>
+        <Link
+          href="/admin/payments"
+          className="bg-navy text-ivory px-4 py-2 rounded-xl text-xs font-bold hover:bg-gold transition flex items-center gap-1.5 shadow-sm"
+        >
+          <span>💳</span> View Payment Approvals &amp; QR Settings
+        </Link>
+      </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Orders list */}
@@ -128,12 +150,14 @@ export default function AdminOrders() {
                   <div className="flex gap-2 mt-2">
                     <span
                       className={`text-[10px] px-2 py-0.5 rounded-full font-medium capitalize ${
-                        o.paymentStatus === "paid"
+                        o.paymentStatus === "approved" || o.paymentStatus === "paid"
                           ? "bg-emerald/10 text-emerald"
+                          : o.paymentStatus === "proof_submitted"
+                          ? "bg-amber-100 text-amber-800 font-bold"
                           : "bg-navy/5 text-navy"
                       }`}
                     >
-                      {o.paymentStatus}
+                      {o.paymentStatus === "proof_submitted" ? "⏳ Proof Submitted" : o.paymentStatus}
                     </span>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-navy/5 text-navy capitalize">
                       {o.status.replace(/_/g, " ")}
@@ -159,15 +183,19 @@ export default function AdminOrders() {
                   </div>
                 </div>
                 <span
-                  className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${
-                    sel.paymentStatus === "paid" ? "bg-emerald/10 text-emerald" : "bg-navy/5 text-navy"
+                  className={`text-xs px-2.5 py-1 rounded-full font-semibold capitalize ${
+                    sel.paymentStatus === "approved" || sel.paymentStatus === "paid"
+                      ? "bg-emerald/10 text-emerald"
+                      : sel.paymentStatus === "proof_submitted"
+                      ? "bg-amber-100 text-amber-800"
+                      : "bg-navy/5 text-navy"
                   }`}
                 >
-                  {sel.paymentStatus}
+                  {sel.paymentStatus === "proof_submitted" ? "⏳ Awaiting Approval" : sel.paymentStatus}
                 </span>
               </div>
 
-              <div className="text-xs text-navy/70 mb-3 space-y-1 bg-navy/5 p-3 rounded-xl">
+              <div className="text-xs text-navy/70 mb-3 space-y-1.5 bg-navy/5 p-3 rounded-xl">
                 <div>
                   <b>Customer:</b> {sel.userName}
                 </div>
@@ -177,14 +205,33 @@ export default function AdminOrders() {
                 <div>
                   <b>Email:</b> {sel.userEmail}
                 </div>
+                {selUtr && (
+                  <div className="font-mono bg-white p-1 rounded border">
+                    <b>UPI UTR / Ref:</b> {selUtr}
+                  </div>
+                )}
+                {selProofUrl && (
+                  <div className="pt-1">
+                    <b>Payment Screenshot:</b>
+                    <div className="mt-1 flex items-center gap-2">
+                      <img
+                        src={selProofUrl}
+                        alt="Proof"
+                        onClick={() => setPreviewImage(selProofUrl)}
+                        className="w-16 h-16 object-cover rounded-lg border-2 border-gold cursor-pointer hover:opacity-80 transition"
+                      />
+                      <button
+                        onClick={() => setPreviewImage(selProofUrl)}
+                        className="text-xs text-gold-700 underline font-semibold"
+                      >
+                        View Full Screenshot 🔍
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {sel.shippingAddress && (
                   <div>
                     <b>Address:</b> {sel.shippingAddress}
-                  </div>
-                )}
-                {sel.notes && (
-                  <div>
-                    <b>Special Notes:</b> {sel.notes}
                   </div>
                 )}
               </div>
@@ -206,29 +253,25 @@ export default function AdminOrders() {
 
               {/* Payment Action */}
               <div className="mb-4 pt-2 border-t border-navy/10">
-                <div className="text-xs font-semibold text-navy mb-2">Payment Status</div>
+                <div className="text-xs font-semibold text-navy mb-2">Payment Verification</div>
                 <div className="flex gap-2">
                   <button
                     disabled={updating}
-                    onClick={() => updatePaymentStatus(sel.id, "paid")}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition ${
-                      sel.paymentStatus === "paid"
+                    onClick={() => updatePaymentStatus(sel.id, "approved")}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition ${
+                      sel.paymentStatus === "approved" || sel.paymentStatus === "paid"
                         ? "bg-emerald text-white border-emerald"
-                        : "border-navy/20 text-navy hover:bg-navy/5"
+                        : "bg-emerald/10 text-emerald border-emerald hover:bg-emerald hover:text-white"
                     }`}
                   >
-                    Mark as Paid
+                    ✓ Approve Payment
                   </button>
                   <button
                     disabled={updating}
                     onClick={() => updatePaymentStatus(sel.id, "pending")}
-                    className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition ${
-                      sel.paymentStatus === "pending"
-                        ? "bg-navy text-white border-navy"
-                        : "border-navy/20 text-navy hover:bg-navy/5"
-                    }`}
+                    className="flex-1 py-1.5 rounded-lg text-xs font-medium border border-navy/20 text-navy hover:bg-navy/5"
                   >
-                    Mark as Pending
+                    Reset Pending
                   </button>
                 </div>
               </div>
@@ -257,6 +300,25 @@ export default function AdminOrders() {
           )}
         </div>
       </div>
+
+      {/* Image Modal */}
+      {previewImage && (
+        <div
+          onClick={() => setPreviewImage(null)}
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+        >
+          <div className="bg-white rounded-2xl max-w-lg p-4 relative" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute top-2 right-2 text-navy/50 text-xl font-bold w-8 h-8 rounded-full bg-navy/5"
+            >
+              ✕
+            </button>
+            <h4 className="font-serif font-bold text-navy mb-2">Payment Screenshot Proof</h4>
+            <img src={previewImage} alt="Payment Receipt" className="max-h-[70vh] object-contain mx-auto rounded-lg" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

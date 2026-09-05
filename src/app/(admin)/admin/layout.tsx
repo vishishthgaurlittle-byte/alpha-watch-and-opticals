@@ -5,9 +5,9 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/store/auth";
 
 const adminNav = [
-  { id: "/admin", label: "Dashboard", icon: "📊" },
   { id: "/admin/products", label: "Products", icon: "📦" },
   { id: "/admin/orders", label: "Orders", icon: "🧾" },
+  { id: "/admin/payments", label: "Payments & UPI", icon: "💳" },
   { id: "/admin/coupons", label: "Coupons", icon: "🏷" },
   { id: "/admin/reviews", label: "Reviews", icon: "⭐" },
   { id: "/admin/theme", label: "Store Theme", icon: "🎨" },
@@ -71,7 +71,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <button
                 onClick={() => {
                   logout();
-                  router.push("/admin");
+                  router.push("/admin/products");
                 }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-300 hover:bg-red-500/10"
               >

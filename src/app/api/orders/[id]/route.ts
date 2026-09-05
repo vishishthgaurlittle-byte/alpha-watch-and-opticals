@@ -29,6 +29,20 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
+    // Parse notes JSON if present
+    if (order.notes && typeof order.notes === "string" && order.notes.startsWith("{")) {
+      try {
+        const parsedNotes = JSON.parse(order.notes);
+        order = {
+          ...order,
+          paymentProofUrl: order.paymentProofUrl || parsedNotes.paymentProofUrl || null,
+          upiTransactionId: order.upiTransactionId || parsedNotes.upiTransactionId || order.razorpayPaymentId || null,
+          paymentAdminNote: order.paymentAdminNote || parsedNotes.paymentAdminNote || null,
+          customerNote: parsedNotes.customerNote || null
+        };
+      } catch {}
+    }
+
     // If order belongs to a user and current requester is a different non-admin user
     if (order.userId && user && user.role !== "admin" && order.userId !== user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
