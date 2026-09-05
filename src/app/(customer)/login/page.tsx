@@ -106,25 +106,25 @@ function LoginContent() {
 
         <form onSubmit={submitEmail} className="space-y-4">
           <div>
-            <label className="text-xs text-ivory/70 block mb-1">Email Address</label>
+            <label className="block text-ivory/70 text-xs mb-1">Email</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="input-premium bg-white/10 border-white/20 text-ivory placeholder:text-ivory/40"
+              placeholder="Email"
+              className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
             />
           </div>
           <div>
-            <label className="text-xs text-ivory/70 block mb-1">Password</label>
+            <label className="block text-ivory/70 text-xs mb-1">Password</label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="input-premium bg-white/10 border-white/20 text-ivory placeholder:text-ivory/40"
+              placeholder="Password"
+              className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
             />
           </div>
           <button

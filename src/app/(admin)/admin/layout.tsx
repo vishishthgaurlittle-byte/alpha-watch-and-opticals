@@ -108,8 +108,28 @@ function AdminGate({ showLogin, onSuccess }: { showLogin: boolean; onSuccess: ()
         </div>
         {err && <div className="bg-red-500/20 text-red-200 text-sm rounded-lg px-4 py-2.5 mb-4">{err}</div>}
         <div className="space-y-3">
-          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Admin email" className="input-premium bg-white/10 border-white/20 text-ivory placeholder:text-ivory/40" />
-          <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="input-premium bg-white/10 border-white/20 text-ivory placeholder:text-ivory/40" />
+          <div>
+            <label className="block text-ivory/70 text-xs mb-1">Email</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+              className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
+            />
+          </div>
+          <div>
+            <label className="block text-ivory/70 text-xs mb-1">Password</label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
+            />
+          </div>
           <button className="btn-gold w-full py-3.5 rounded-full font-semibold">Login</button>
         </div>
         <Link href="/" className="block text-center text-xs text-gold underline mt-4">← Back to store</Link>

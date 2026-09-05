@@ -58,8 +58,8 @@ export default function NewsletterClient() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              className="input-premium bg-white/10 border-white/20 text-ivory placeholder:text-ivory/40 flex-1"
+              placeholder="Email"
+              className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55 flex-1"
             />
             <button
               type="submit"

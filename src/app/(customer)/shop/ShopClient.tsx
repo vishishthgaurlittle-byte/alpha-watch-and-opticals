@@ -122,10 +122,10 @@ export default function ShopClient({ initialProducts, categories }: Props) {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search watches, brands, eyewear..."
-              className="input-premium pl-10"
+              className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 pl-10"
             />
           </div>
-          <select value={sort} onChange={(e) => setSort(e.target.value)} className="input-premium w-auto text-sm">
+          <select value={sort} onChange={(e) => setSort(e.target.value)} className="input-premium bg-white text-navy border-navy/15 w-auto text-sm">
             <option value="popular">Popularity</option>
             <option value="newest">Newest</option>
             <option value="price-asc">Price: Low to High</option>

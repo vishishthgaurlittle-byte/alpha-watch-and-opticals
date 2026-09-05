@@ -118,46 +118,61 @@ function RegisterContent() {
         )}
 
         <form onSubmit={submit} className="space-y-3">
-          <input
-            required
-            value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            placeholder="Full Name *"
-            className="input-premium bg-white/10 border-white/20 text-ivory placeholder:text-ivory/40"
-          />
-          <input
-            type="email"
-            required
-            value={form.email}
-            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-            placeholder="Email Address *"
-            className="input-premium bg-white/10 border-white/20 text-ivory placeholder:text-ivory/40"
-          />
-          <input
-            type="tel"
-            value={form.phone}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))
-            }
-            placeholder="10-digit Mobile Number (Optional)"
-            className="input-premium bg-white/10 border-white/20 text-ivory placeholder:text-ivory/40"
-          />
-          <input
-            type="password"
-            required
-            value={form.password}
-            onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-            placeholder="Password (min 6 characters) *"
-            className="input-premium bg-white/10 border-white/20 text-ivory placeholder:text-ivory/40"
-          />
-          <input
-            type="password"
-            required
-            value={form.confirm}
-            onChange={(e) => setForm((f) => ({ ...f, confirm: e.target.value }))}
-            placeholder="Confirm Password *"
-            className="input-premium bg-white/10 border-white/20 text-ivory placeholder:text-ivory/40"
-          />
+          <div>
+            <label className="block text-ivory/70 text-xs mb-1">Full name</label>
+            <input
+              required
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder="Full name"
+              className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
+            />
+          </div>
+          <div>
+            <label className="block text-ivory/70 text-xs mb-1">Email</label>
+            <input
+              type="email"
+              required
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              placeholder="Email"
+              className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
+            />
+          </div>
+          <div>
+            <label className="block text-ivory/70 text-xs mb-1">Phone</label>
+            <input
+              type="tel"
+              value={form.phone}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))
+              }
+              placeholder="10-digit mobile number"
+              className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
+            />
+          </div>
+          <div>
+            <label className="block text-ivory/70 text-xs mb-1">Password</label>
+            <input
+              type="password"
+              required
+              value={form.password}
+              onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+              placeholder="Password"
+              className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
+            />
+          </div>
+          <div>
+            <label className="block text-ivory/70 text-xs mb-1">Confirm password</label>
+            <input
+              type="password"
+              required
+              value={form.confirm}
+              onChange={(e) => setForm((f) => ({ ...f, confirm: e.target.value }))}
+              placeholder="Confirm password"
+              className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
+            />
+          </div>
           <button
             type="submit"
             disabled={busy}

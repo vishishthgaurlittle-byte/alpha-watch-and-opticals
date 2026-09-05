@@ -169,7 +169,7 @@ export default function ProductDetail({ product, related }: { product: Product; 
           <div className="mt-6">
             <div className="text-xs uppercase tracking-wider text-navy/50 mb-2">Delivery to</div>
             <div className="flex gap-2">
-              <input value={pincode} onChange={(e) => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="Enter pincode" className="input-premium flex-1" />
+              <input value={pincode} onChange={(e) => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="Enter pincode" className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 flex-1" />
               <button onClick={() => {
                 if (pincode.length === 6) setPinMsg("✓ Delivery available to " + pincode + " (3-5 days).");
                 else setPinMsg("Please enter a valid 6-digit pincode.");
@@ -233,8 +233,8 @@ export default function ProductDetail({ product, related }: { product: Product; 
                   ))}
                 </div>
               </div>
-              <input value={reviewForm.title} onChange={(e) => setReviewForm((f) => ({ ...f, title: e.target.value }))} placeholder="Title (optional)" className="input-premium" />
-              <textarea value={reviewForm.comment} onChange={(e) => setReviewForm((f) => ({ ...f, comment: e.target.value }))} placeholder="Share your experience" required className="input-premium min-h-[90px]" />
+              <input value={reviewForm.title} onChange={(e) => setReviewForm((f) => ({ ...f, title: e.target.value }))} placeholder="Title (optional)" className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15" />
+              <textarea value={reviewForm.comment} onChange={(e) => setReviewForm((f) => ({ ...f, comment: e.target.value }))} placeholder="Share your experience" required className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 min-h-[90px]" />
               <button className="btn-gold w-full py-3 rounded-full font-semibold">Submit Review</button>
             </form>
           </div>

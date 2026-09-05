@@ -90,7 +90,7 @@ export default function AdminCoupons() {
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
                 placeholder="e.g. FESTIVE20"
-                className="input-premium uppercase"
+                className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 uppercase"
               />
             </div>
             <div>
@@ -98,7 +98,7 @@ export default function AdminCoupons() {
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as any)}
-                className="input-premium"
+                className="input-premium bg-white text-navy border-navy/15"
               >
                 <option value="percent">Percentage Discount (%)</option>
                 <option value="fixed">Flat Amount (₹)</option>
@@ -113,7 +113,7 @@ export default function AdminCoupons() {
                 required
                 value={value}
                 onChange={(e) => setValue(+e.target.value)}
-                className="input-premium"
+                className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15"
               />
             </div>
             <div>
@@ -123,7 +123,7 @@ export default function AdminCoupons() {
                 required
                 value={minCart}
                 onChange={(e) => setMinCart(+e.target.value)}
-                className="input-premium"
+                className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15"
               />
             </div>
             <div>
@@ -133,7 +133,7 @@ export default function AdminCoupons() {
                 required
                 value={usageLimit}
                 onChange={(e) => setUsageLimit(+e.target.value)}
-                className="input-premium"
+                className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15"
               />
             </div>
             <button

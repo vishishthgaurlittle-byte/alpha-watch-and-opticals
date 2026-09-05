@@ -294,7 +294,7 @@ function EditForm({
           <input
             value={p.name}
             onChange={(e) => up({ name: e.target.value })}
-            className="input-premium mt-1 font-medium"
+            className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 mt-1 font-medium"
           />
         </label>
         <label className="text-xs text-navy/60">
@@ -302,7 +302,7 @@ function EditForm({
           <input
             value={p.brand}
             onChange={(e) => up({ brand: e.target.value })}
-            className="input-premium mt-1"
+            className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 mt-1"
           />
         </label>
         <label className="text-xs text-navy/60">
@@ -310,7 +310,7 @@ function EditForm({
           <select
             value={p.category_id}
             onChange={(e) => up({ category_id: e.target.value })}
-            className="input-premium mt-1"
+            className="input-premium bg-white text-navy border-navy/15 mt-1"
           >
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
@@ -324,7 +324,7 @@ function EditForm({
           <select
             value={p.status}
             onChange={(e) => up({ status: e.target.value as any })}
-            className="input-premium mt-1"
+            className="input-premium bg-white text-navy border-navy/15 mt-1"
           >
             <option value="published">Published (Visible in Shop)</option>
             <option value="draft">Draft (Hidden - Returns 404)</option>
@@ -336,7 +336,7 @@ function EditForm({
             type="number"
             value={p.price}
             onChange={(e) => up({ price: +e.target.value })}
-            className="input-premium mt-1"
+            className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 mt-1"
           />
         </label>
         <label className="text-xs text-navy/60">
@@ -345,7 +345,7 @@ function EditForm({
             type="number"
             value={p.mrp}
             onChange={(e) => up({ mrp: +e.target.value })}
-            className="input-premium mt-1"
+            className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 mt-1"
           />
         </label>
         <label className="text-xs text-navy/60">
@@ -354,7 +354,7 @@ function EditForm({
             type="number"
             value={p.stock}
             onChange={(e) => up({ stock: +e.target.value })}
-            className="input-premium mt-1"
+            className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 mt-1"
           />
         </label>
         <div className="md:col-span-2">
@@ -363,7 +363,7 @@ function EditForm({
             <textarea
               value={p.description}
               onChange={(e) => up({ description: e.target.value })}
-              className="input-premium mt-1 min-h-[80px]"
+              className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 mt-1 min-h-[80px]"
             />
           </label>
         </div>
@@ -389,7 +389,7 @@ function EditForm({
               value={imgInput}
               onChange={(e) => setImgInput(e.target.value)}
               placeholder="/images/products/….jpg or image URL"
-              className="input-premium flex-1 text-xs"
+              className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 flex-1 text-xs"
             />
             <button
               type="button"

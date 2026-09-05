@@ -120,35 +120,47 @@ export default function ContactClient() {
             autoComplete="off"
           />
           <div className="grid sm:grid-cols-2 gap-3">
-            <input
-              required
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="Your Name *"
-              className="input-premium"
-            />
-            <input
-              required
-              type="tel"
-              value={form.phone}
-              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))}
-              placeholder="10-digit Phone *"
-              className="input-premium"
-            />
-            <input
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              placeholder="Email Address (Optional)"
-              className="input-premium sm:col-span-2"
-            />
-            <textarea
-              required
-              value={form.message}
-              onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
-              placeholder="How can we help you? *"
-              className="input-premium sm:col-span-2 min-h-[90px]"
-            />
+            <div>
+              <label className="block text-navy/70 text-xs mb-1">Name</label>
+              <input
+                required
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="Full name"
+                className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15"
+              />
+            </div>
+            <div>
+              <label className="block text-navy/70 text-xs mb-1">Phone</label>
+              <input
+                required
+                type="tel"
+                value={form.phone}
+                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))}
+                placeholder="10-digit mobile number"
+                className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-navy/70 text-xs mb-1">Email</label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                placeholder="Email address"
+                className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-navy/70 text-xs mb-1">Message</label>
+              <textarea
+                required
+                value={form.message}
+                onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
+                placeholder="How can we help you?"
+                className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 min-h-[90px]"
+              />
+            </div>
           </div>
           <button
             type="submit"
@@ -183,41 +195,53 @@ export default function ContactClient() {
                 autoComplete="off"
               />
               <div className="grid sm:grid-cols-2 gap-3">
-                <input
-                  required
-                  value={appointment.name}
-                  onChange={(e) => setAppointment((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="Your Name *"
-                  className="input-premium bg-white/10 border-white/20 text-ivory placeholder:text-ivory/40 sm:col-span-2"
-                />
-                <input
-                  required
-                  type="tel"
-                  value={appointment.phone}
-                  onChange={(e) =>
-                    setAppointment((f) => ({ ...f, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))
-                  }
-                  placeholder="10-digit Phone Number *"
-                  className="input-premium bg-white/10 border-white/20 text-ivory placeholder:text-ivory/40"
-                />
-                <input
-                  required
-                  type="date"
-                  value={appointment.preferredDate}
-                  onChange={(e) => setAppointment((f) => ({ ...f, preferredDate: e.target.value }))}
-                  className="input-premium bg-white/10 border-white/20 text-ivory placeholder:text-ivory/40"
-                />
-                <select
-                  value={appointment.serviceType}
-                  onChange={(e) => setAppointment((f) => ({ ...f, serviceType: e.target.value }))}
-                  className="input-premium bg-[var(--surface)] border-white/20 text-ivory sm:col-span-2"
-                >
-                  <option value="Eye Test">Computerised Eye Testing (Free)</option>
-                  <option value="Contact Lens Fitting">Contact Lens Trial &amp; Fitting</option>
-                  <option value="Progressive Lens Consultation">Progressive Lens Consultation</option>
-                  <option value="Watch Repair">Watch Repair &amp; Restoration</option>
-                  <option value="Battery & Strap Sizing">Battery Replacement / Strap Sizing</option>
-                </select>
+                <div className="sm:col-span-2">
+                  <label className="block text-ivory/70 text-xs mb-1">Full name</label>
+                  <input
+                    required
+                    value={appointment.name}
+                    onChange={(e) => setAppointment((f) => ({ ...f, name: e.target.value }))}
+                    placeholder="Full name"
+                    className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
+                  />
+                </div>
+                <div>
+                  <label className="block text-ivory/70 text-xs mb-1">Phone</label>
+                  <input
+                    required
+                    type="tel"
+                    value={appointment.phone}
+                    onChange={(e) =>
+                      setAppointment((f) => ({ ...f, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))
+                    }
+                    placeholder="10-digit mobile number"
+                    className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
+                  />
+                </div>
+                <div>
+                  <label className="block text-ivory/70 text-xs mb-1">Preferred Date</label>
+                  <input
+                    required
+                    type="date"
+                    value={appointment.preferredDate}
+                    onChange={(e) => setAppointment((f) => ({ ...f, preferredDate: e.target.value }))}
+                    className="input-premium input-dark bg-white/10 border-white/25 text-ivory placeholder:text-ivory/55"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-ivory/70 text-xs mb-1">Service Type</label>
+                  <select
+                    value={appointment.serviceType}
+                    onChange={(e) => setAppointment((f) => ({ ...f, serviceType: e.target.value }))}
+                    className="input-premium input-dark bg-[var(--surface)] border-white/25 text-ivory"
+                  >
+                    <option value="Eye Test" className="bg-navy-950 text-ivory">Computerised Eye Testing (Free)</option>
+                    <option value="Contact Lens Fitting" className="bg-navy-950 text-ivory">Contact Lens Trial &amp; Fitting</option>
+                    <option value="Progressive Lens Consultation" className="bg-navy-950 text-ivory">Progressive Lens Consultation</option>
+                    <option value="Watch Repair" className="bg-navy-950 text-ivory">Watch Repair &amp; Restoration</option>
+                    <option value="Battery & Strap Sizing" className="bg-navy-950 text-ivory">Battery Replacement / Strap Sizing</option>
+                  </select>
+                </div>
                 <button
                   type="submit"
                   disabled={isBooking}

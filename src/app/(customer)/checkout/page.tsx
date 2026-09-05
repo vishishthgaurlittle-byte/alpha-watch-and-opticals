@@ -189,8 +189,8 @@ export default function CheckoutPage() {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData((f) => ({ ...f, name: e.target.value }))}
-                    placeholder="Enter your name"
-                    className="input-premium"
+                    placeholder="Full name"
+                    className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15"
                   />
                 </div>
                 <div>
@@ -202,8 +202,8 @@ export default function CheckoutPage() {
                     onChange={(e) =>
                       setFormData((f) => ({ ...f, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))
                     }
-                    placeholder="10-digit phone number"
-                    className="input-premium"
+                    placeholder="10-digit mobile number"
+                    className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15"
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -213,8 +213,8 @@ export default function CheckoutPage() {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData((f) => ({ ...f, email: e.target.value }))}
-                    placeholder="order.updates@example.com"
-                    className="input-premium"
+                    placeholder="Email address"
+                    className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15"
                   />
                 </div>
               </div>
@@ -261,7 +261,7 @@ export default function CheckoutPage() {
                       value={formData.line1}
                       onChange={(e) => setFormData((f) => ({ ...f, line1: e.target.value }))}
                       placeholder="e.g. House No. 42, Civil Lines"
-                      className="input-premium"
+                      className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15"
                     />
                   </div>
                   <div>
@@ -270,7 +270,7 @@ export default function CheckoutPage() {
                       value={formData.line2}
                       onChange={(e) => setFormData((f) => ({ ...f, line2: e.target.value }))}
                       placeholder="Near degree college"
-                      className="input-premium"
+                      className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15"
                     />
                   </div>
                   <div>
@@ -282,7 +282,7 @@ export default function CheckoutPage() {
                         setFormData((f) => ({ ...f, pincode: e.target.value.replace(/\D/g, "").slice(0, 6) }))
                       }
                       placeholder="229001"
-                      className="input-premium"
+                      className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15"
                     />
                   </div>
                   <div>
@@ -290,7 +290,7 @@ export default function CheckoutPage() {
                     <input
                       value={formData.city}
                       onChange={(e) => setFormData((f) => ({ ...f, city: e.target.value }))}
-                      className="input-premium"
+                      className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15"
                     />
                   </div>
                   <div>
@@ -298,7 +298,7 @@ export default function CheckoutPage() {
                     <input
                       value={formData.state}
                       onChange={(e) => setFormData((f) => ({ ...f, state: e.target.value }))}
-                      className="input-premium"
+                      className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15"
                     />
                   </div>
                 </div>
@@ -312,7 +312,7 @@ export default function CheckoutPage() {
                 value={formData.notes}
                 onChange={(e) => setFormData((f) => ({ ...f, notes: e.target.value }))}
                 placeholder="Prescription power notes, preferred pickup timing, or watch strap sizing requests..."
-                className="input-premium min-h-[80px]"
+                className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 min-h-[80px]"
               />
             </div>
           </div>
@@ -348,7 +348,7 @@ export default function CheckoutPage() {
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                   placeholder="Coupon (e.g. WELCOME10)"
-                  className="input-premium flex-1 text-sm uppercase"
+                  className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 flex-1 text-sm uppercase"
                 />
                 <button
                   type="submit"

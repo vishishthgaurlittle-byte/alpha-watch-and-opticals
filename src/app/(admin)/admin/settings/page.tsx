@@ -40,39 +40,39 @@ export default function AdminSettings() {
         <form onSubmit={save} className="grid sm:grid-cols-2 gap-4 max-w-3xl">
           <label className="text-xs text-navy/60">
             Official Phone
-            <input value={form.phone} onChange={set("phone")} className="input-premium mt-1 font-medium" />
+            <input value={form.phone} onChange={set("phone")} className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 mt-1 font-medium" />
           </label>
           <label className="text-xs text-navy/60">
             WhatsApp Number (Country code included)
-            <input value={form.whatsapp} onChange={set("whatsapp")} className="input-premium mt-1 font-medium" />
+            <input value={form.whatsapp} onChange={set("whatsapp")} className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 mt-1 font-medium" />
           </label>
           <label className="text-xs text-navy/60">
             Official Store Email
-            <input value={form.email} onChange={set("email")} className="input-premium mt-1" />
+            <input value={form.email} onChange={set("email")} className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 mt-1" />
           </label>
           <label className="text-xs text-navy/60">
             Store Timings
-            <input value={form.timings} onChange={set("timings")} className="input-premium mt-1" />
+            <input value={form.timings} onChange={set("timings")} className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 mt-1" />
           </label>
           <label className="text-xs text-navy/60 sm:col-span-2">
             Physical Showroom Address
-            <textarea value={form.address} onChange={set("address")} className="input-premium mt-1 min-h-[60px]" />
+            <textarea value={form.address} onChange={set("address")} className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 mt-1 min-h-[60px]" />
           </label>
           <label className="text-xs text-navy/60">
             Legal Business Name
-            <input value={form.legalEntity} onChange={set("legalEntity")} className="input-premium mt-1" />
+            <input value={form.legalEntity} onChange={set("legalEntity")} className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 mt-1" />
           </label>
           <label className="text-xs text-navy/60">
             Grievance Officer Name
-            <input value={form.grievanceName} onChange={set("grievanceName")} className="input-premium mt-1" />
+            <input value={form.grievanceName} onChange={set("grievanceName")} className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 mt-1" />
           </label>
           <label className="text-xs text-navy/60">
             Free Delivery Minimum (₹)
-            <input type="number" value={form.deliveryThreshold} onChange={set("deliveryThreshold")} className="input-premium mt-1" />
+            <input type="number" value={form.deliveryThreshold} onChange={set("deliveryThreshold")} className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 mt-1" />
           </label>
           <label className="text-xs text-navy/60">
             Standard Delivery Charge (₹)
-            <input type="number" value={form.deliveryCharge} onChange={set("deliveryCharge")} className="input-premium mt-1" />
+            <input type="number" value={form.deliveryCharge} onChange={set("deliveryCharge")} className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 mt-1" />
           </label>
           <button type="submit" className="btn-gold sm:col-span-2 mt-2 py-3 rounded-full font-semibold">
             Save Store Settings

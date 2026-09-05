@@ -295,7 +295,7 @@ export default function AccountPage() {
                     onChange={(e) => setAddrForm((f) => ({ ...f, address: e.target.value }))}
                     placeholder="House / Street / Area"
                     required
-                    className="input-premium sm:col-span-2"
+                    className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 sm:col-span-2"
                   />
                   <input
                     value={addrForm.pincode}
@@ -304,20 +304,20 @@ export default function AccountPage() {
                     }
                     placeholder="Pincode"
                     required
-                    className="input-premium"
+                    className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15"
                   />
                   <input
                     value={addrForm.phone}
                     onChange={(e) => setAddrForm((f) => ({ ...f, phone: e.target.value.slice(0, 10) }))}
                     placeholder="Phone"
                     required
-                    className="input-premium"
+                    className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15"
                   />
                   <input
                     value={addrForm.landmark}
                     onChange={(e) => setAddrForm((f) => ({ ...f, landmark: e.target.value }))}
                     placeholder="Landmark (optional)"
-                    className="input-premium sm:col-span-2"
+                    className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 sm:col-span-2"
                   />
                   <button className="btn-gold col-span-2 py-3 rounded-full font-semibold">
                     Save Address
@@ -443,14 +443,14 @@ export default function AccountPage() {
                     value={ticketForm.subject}
                     onChange={(e) => setTicketForm((f) => ({ ...f, subject: e.target.value }))}
                     placeholder="Subject *"
-                    className="input-premium"
+                    className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15"
                   />
                   <textarea
                     required
                     value={ticketForm.message}
                     onChange={(e) => setTicketForm((f) => ({ ...f, message: e.target.value }))}
                     placeholder="How can our store team assist you? *"
-                    className="input-premium min-h-[90px]"
+                    className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 min-h-[90px]"
                   />
                   <button className="btn-gold py-3 rounded-full font-semibold">
                     Submit Support Ticket
@@ -492,7 +492,7 @@ export default function AccountPage() {
                     <input
                       value={profile.name}
                       onChange={(e) => setProfile((f) => ({ ...f, name: e.target.value }))}
-                      className="input-premium mt-1 font-medium"
+                      className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 mt-1 font-medium"
                     />
                   </label>
                   <label className="text-xs text-navy/50 block">
@@ -505,12 +505,12 @@ export default function AccountPage() {
                           phone: e.target.value.replace(/\D/g, "").slice(0, 10)
                         }))
                       }
-                      className="input-premium mt-1 font-medium"
+                      className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 mt-1 font-medium"
                     />
                   </label>
                   <label className="text-xs text-navy/50 block sm:col-span-2">
                     Email Address (linked)
-                    <input value={profile.email} disabled className="input-premium mt-1 opacity-60" />
+                    <input value={profile.email} disabled className="input-premium bg-white text-navy placeholder:text-navy/40 border-navy/15 mt-1 opacity-60" />
                   </label>
                   <button className="btn-gold sm:col-span-2 py-3 rounded-full font-semibold">
                     Save Changes
