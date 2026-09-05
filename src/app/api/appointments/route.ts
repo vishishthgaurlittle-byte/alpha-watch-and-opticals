@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown-ip";
     if (!rateLimit(ip, 5, 3600000)) {
       return NextResponse.json(
-        { error: "Too many appointment requests. Please call our store directly." },
+        { error: "Too many appointment requests. Please call our store directly at +91 90444 77735." },
         { status: 429 }
       );
     }
@@ -39,17 +39,27 @@ export async function POST(req: NextRequest) {
 
     const { name, phone, email, serviceType, preferredDate } = parsed.data;
 
-    const saved = await prisma.appointment.create({
-      data: {
-        name: name.trim(),
-        phone: phone.trim(),
-        email: email ? email.trim().toLowerCase() : null,
-        serviceType: serviceType.trim(),
-        preferredDate: preferredDate.trim()
-      }
-    });
+    let savedId = `appt-${Date.now()}`;
+    try {
+      const saved = await prisma.appointment.create({
+        data: {
+          name: name.trim(),
+          phone: phone.trim(),
+          email: email ? email.trim().toLowerCase() : null,
+          serviceType: serviceType.trim(),
+          preferredDate: preferredDate.trim()
+        }
+      });
+      savedId = saved.id;
+    } catch (dbErr) {
+      console.warn("Database appointment creation failed:", dbErr);
+      return NextResponse.json(
+        { error: "Service temporarily unavailable. Please call +91 90444 77735 to book directly." },
+        { status: 503 }
+      );
+    }
 
-    await sendShopNotification(
+    sendShopNotification(
       `New In-Store Service Appointment: ${serviceType} (${name})`,
       `<h3>New Service Appointment Request</h3>
        <p><strong>Customer Name:</strong> ${name}</p>
@@ -57,18 +67,18 @@ export async function POST(req: NextRequest) {
        <p><strong>Email:</strong> ${email || "Not provided"}</p>
        <p><strong>Service Requested:</strong> ${serviceType}</p>
        <p><strong>Preferred Date:</strong> ${preferredDate}</p>`
-    );
+    ).catch(() => {});
 
     return NextResponse.json({
       success: true,
       message: "Appointment request submitted successfully! We will call to confirm your slot.",
-      id: saved.id
+      id: savedId
     });
   } catch (err: any) {
     console.error("Appointment API error:", err);
     return NextResponse.json(
-      { error: "Failed to book appointment. Please contact us via phone." },
-      { status: 500 }
+      { error: "Service temporarily unavailable. Please call +91 90444 77735 to book directly." },
+      { status: 503 }
     );
   }
 }

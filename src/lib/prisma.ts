@@ -3,8 +3,9 @@ import { PrismaClient } from "@prisma/client";
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 function createPrisma() {
+  process.env.DATABASE_URL = process.env.DATABASE_URL || "file:./prisma/prod.db";
   return new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+    log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"]
   });
 }
 
@@ -20,7 +21,7 @@ const prisma = new Proxy({} as PrismaClient, {
     const client = getPrisma();
     const value = Reflect.get(client, prop, recv);
     return typeof value === "function" ? value.bind(client) : value;
-  },
+  }
 });
 
 export default prisma;

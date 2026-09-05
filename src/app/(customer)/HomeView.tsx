@@ -38,16 +38,11 @@ export default function HomeView({ products }: { products: Product[] }) {
               Authorized Watch House &amp; Optical Center
             </motion.div>
 
-            <motion.h1
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.1 }}
-              className="font-serif text-4xl sm:text-5xl md:text-6xl font-bold leading-tight"
-            >
+            <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl font-bold leading-tight">
               Timeless Watches.
               <br />
               <span className="gold-text">Perfect Vision.</span>
-            </motion.h1>
+            </h1>
 
             <motion.p
               initial={{ opacity: 0, y: 24 }}

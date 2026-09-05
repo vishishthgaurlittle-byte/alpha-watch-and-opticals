@@ -6,7 +6,9 @@ import HomeView from "./HomeView";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Alpha Watch & Opticals – Premium Watch House & Opticals in Raebareli",
+  title: {
+    absolute: "Alpha Watch & Opticals – Premium Watch House & Opticals in Raebareli"
+  },
   description:
     "Explore authentic branded watches, designer sunglasses, and prescription optical eyewear in Raebareli. Certified eye testing & watch repair services at Chowdhary Complex, Degree College Chauraha.",
   alternates: {

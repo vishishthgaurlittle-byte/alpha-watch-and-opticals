@@ -313,7 +313,7 @@ function seed(): DBShape {
     name: "Mohd. Shoeb",
     email: process.env.ADMIN_SEED_EMAIL || "admin@alpha.com",
     phone: "9044477735",
-    password: hashPw(process.env.ADMIN_SEED_PASSWORD || "admin123"),
+    password: hashPw(process.env.ADMIN_SEED_PASSWORD || "AlphaAdminSecure2026!"),
     role: "admin",
     provider: "email",
     created_at: now

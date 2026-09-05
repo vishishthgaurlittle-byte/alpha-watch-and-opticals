@@ -39,36 +39,44 @@ export async function POST(req: NextRequest) {
 
     const { name, phone, email, message } = parsed.data;
 
-    // Persist to database
-    const saved = await prisma.contactMessage.create({
-      data: {
-        name: name.trim(),
-        phone: phone.trim(),
-        email: email ? email.trim().toLowerCase() : null,
-        message: message.trim()
-      }
-    });
+    let savedId = `msg-${Date.now()}`;
+    try {
+      const saved = await prisma.contactMessage.create({
+        data: {
+          name: name.trim(),
+          phone: phone.trim(),
+          email: email ? email.trim().toLowerCase() : null,
+          message: message.trim()
+        }
+      });
+      savedId = saved.id;
+    } catch (dbErr) {
+      console.warn("Database contact message creation failed:", dbErr);
+      return NextResponse.json(
+        { error: "Service temporarily unavailable. Please call +91 90444 77735 or email alpha.watch.opticals@gmail.com directly." },
+        { status: 503 }
+      );
+    }
 
-    // Send email notification to store owner
-    await sendShopNotification(
+    sendShopNotification(
       `New Customer Message from ${name}`,
       `<h3>New Contact Message</h3>
        <p><strong>Name:</strong> ${name}</p>
        <p><strong>Phone:</strong> ${phone}</p>
        <p><strong>Email:</strong> ${email || "Not provided"}</p>
        <p><strong>Message:</strong><br/>${message.replace(/\n/g, "<br/>")}</p>`
-    );
+    ).catch(() => {});
 
     return NextResponse.json({
       success: true,
       message: "Message sent successfully! Our team will get back to you shortly.",
-      id: saved.id
+      id: savedId
     });
   } catch (err: any) {
     console.error("Contact API error:", err);
     return NextResponse.json(
-      { error: "Unable to send message right now. Please call our store directly." },
-      { status: 500 }
+      { error: "Service temporarily unavailable. Please call +91 90444 77735 directly." },
+      { status: 503 }
     );
   }
 }

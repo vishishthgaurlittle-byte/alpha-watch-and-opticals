@@ -7,7 +7,7 @@ export const metadata = { title: "Services" };
 const services = [
   { icon: "⌚", t: "Watch Repair & Servicing", d: "Expert horological servicing, movement cleaning and mechanical repair for luxury & quartz watches.", price: "From ₹200", note: "Genuine parts · quick turnaround", img: "/images/shop/watch-repair-workbench.jpg" },
   { icon: "🔋", t: "Battery Replacement", d: "Swiss/Japanese battery replacement with ultrasonic cleaning and gasket water-resistance testing.", price: "From ₹150", note: "While you wait (10 mins)", img: "/images/shop/interior-watches.jpg" },
-  { icon: "📏", t: "Strap Sizing & Polish", d: "Free precision bracelet link adjustment, leather strap fitting and ultrasonic ultrasonic case polish.", price: "Free", note: "Complimentary service", img: "/images/products/watch-strap.jpg" },
+  { icon: "📏", t: "Strap Sizing & Polish", d: "Free precision bracelet link adjustment, leather strap fitting and ultrasonic case polish.", price: "Free", note: "Complimentary service", img: "/images/products/watch-strap.jpg" },
   { icon: "👁", t: "Computerised Eye Testing", d: "Advanced autorefractor & phoropter eye examinations by certified optical specialists.", price: "Free with frame", note: "Walk-ins & appointments", img: "/images/shop/eye-testing-clinic.jpg" },
   { icon: "🕶", t: "Contact Lens Consultation", d: "Trial lenses, corneal measurement and personalised lens fitting with hygiene training.", price: "Free trial", note: "Daily, monthly & toric", img: "/images/products/contact-lens.jpg" },
   { icon: "🪄", t: "Custom Lens Fitting", d: "High-index, Blue-cut digital protection, anti-glare, progressive & photochromic transitions.", price: "From ₹500", note: "Precision edged on-site", img: "/images/shop/interior-opticals.jpg" }
