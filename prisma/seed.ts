@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -24,7 +23,7 @@ async function main() {
     });
   }
 
-  // 2. Published Products (Clean, unique photography per SKU)
+  // 2. Published Products
   const products = [
     {
       id: "p-chrono",
@@ -247,7 +246,7 @@ async function main() {
       price: 32999,
       mrp: 39999,
       stock: 0,
-      status: "draft", // DRAFT status: must not be visible on public routes
+      status: "draft",
       description: "Unpublished prototype watch.",
       specsJson: "{}",
       imagesJson: JSON.stringify(["/images/products/mens-chrono-gold.jpg"]),
@@ -281,25 +280,31 @@ async function main() {
     }
   }
 
-  // 3. Admin User (Secure bcrypt hash from environment)
-  const adminEmail = process.env.ADMIN_EMAIL || "admin@alpha.com";
-  const adminPassword = process.env.ADMIN_PASSWORD || "AlphaAdminSecure2026!";
-  const passwordHash = await bcrypt.hash(adminPassword, 12);
+  // 3. Clean up legacy admin/demo accounts and seed real Google Admin
+  const adminEmail = (process.env.ADMIN_EMAIL || "vishishthgaurlittle@gmail.com").toLowerCase().trim();
 
+  // Delete legacy/demo accounts
+  await prisma.user.deleteMany({
+    where: {
+      email: {
+        in: ["admin@alpha.com", "demo@customer.com", "demo@alpha.com"]
+      }
+    }
+  });
+
+  // Provision the real Google owner account
   await prisma.user.upsert({
-    where: { email: adminEmail.toLowerCase() },
+    where: { email: adminEmail },
     update: {
-      name: "Mohd. Shoeb",
+      name: "Little Vishishth Gaur",
       role: "admin",
-      passwordHash
+      provider: "google"
     },
     create: {
-      name: "Mohd. Shoeb",
-      email: adminEmail.toLowerCase(),
-      phone: "+919044477735",
-      passwordHash,
+      name: "Little Vishishth Gaur",
+      email: adminEmail,
       role: "admin",
-      provider: "credentials"
+      provider: "google"
     }
   });
 
@@ -327,7 +332,7 @@ async function main() {
     }
   });
 
-  console.log("Database seeded successfully! Real admin account provisioned.");
+  console.log("Database seeded successfully! Real Google admin account provisioned.");
 }
 
 main()

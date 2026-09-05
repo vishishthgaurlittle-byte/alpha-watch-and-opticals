@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     }
 
     const insforgeUser = data.user;
-    const adminEmail = (process.env.ADMIN_EMAIL || "admin@alpha.com").toLowerCase();
+    const adminEmail = (process.env.ADMIN_EMAIL || "vishishthgaurlittle@gmail.com").toLowerCase();
     const role = normalizedEmail === adminEmail ? "admin" : "customer";
     const displayName = (insforgeUser as any).profile?.name || name.trim() || normalizedEmail.split("@")[0];
     const avatar = (insforgeUser as any).profile?.avatar_url || null;
@@ -126,6 +126,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         ok: true,
+        success: true,
         user: {
           id: insforgeUser.id,
           name: displayName,

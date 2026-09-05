@@ -43,32 +43,37 @@ export default function Header() {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
-          scrolled ? "glass-light shadow-card py-2" : "bg-transparent py-3"
+        className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 bg-[#F4EFE6] border-b border-[#E2D9C8] ${
+          scrolled ? "shadow-md py-2.5 bg-[#F4EFE6]/98 backdrop-blur-md" : "py-3.5 shadow-sm"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between">
           <Logo />
 
-          <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={`px-3 py-2 text-sm font-medium rounded-full transition-colors ${
-                  pathname === l.href ? "text-gold-700 font-bold" : "text-navy hover:text-gold-700"
-                }`}
-              >
-                {l.label}
-              </Link>
-            ))}
+          <nav className="hidden md:flex items-center gap-1.5" aria-label="Main Navigation">
+            {navLinks.map((l) => {
+              const isActive = pathname === l.href;
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className={`px-3.5 py-2 text-sm rounded-full transition-all duration-200 ${
+                    isActive
+                      ? "text-[#1E3A8A] font-bold bg-[#1E3A8A]/15 shadow-xs"
+                      : "text-[#1E3A8A] font-medium hover:text-[#1E40AF] hover:bg-[#1E3A8A]/10"
+                  }`}
+                >
+                  {l.label}
+                </Link>
+              );
+            })}
           </nav>
 
           <div className="flex items-center gap-2">
             {/* Theme Palette Button */}
             <button
               onClick={() => setThemeModalOpen(true)}
-              className="p-2.5 rounded-full text-navy hover:bg-navy/5 transition relative"
+              className="p-2.5 rounded-full text-[#1E3A8A] hover:text-[#1E40AF] hover:bg-[#1E3A8A]/10 transition relative focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]/30"
               title="Change Theme Appearance"
               aria-label="Theme Palette"
             >
@@ -87,16 +92,16 @@ export default function Header() {
             {/* Cart Button */}
             <button
               onClick={() => setCartOpen(true)}
-              className="relative p-2.5 rounded-full text-navy hover:bg-navy/5 transition"
+              className="relative p-2.5 rounded-full text-[#1E3A8A] hover:text-[#1E40AF] hover:bg-[#1E3A8A]/10 transition focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]/30"
               aria-label="Cart"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" d="M3 3h2l2 12h11l2-8H6" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M3 3h2l2 12h11l2-8H6" />
                 <circle cx="9" cy="20" r="1.5" fill="currentColor" />
                 <circle cx="17" cy="20" r="1.5" fill="currentColor" />
               </svg>
               {count > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-gold text-white text-[11px] flex items-center justify-center font-bold">
+                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#1E3A8A] text-[#F4EFE6] text-[11px] flex items-center justify-center font-bold shadow-xs">
                   {count}
                 </span>
               )}
@@ -104,27 +109,37 @@ export default function Header() {
 
             {user ? (
               user.role === "admin" ? (
-                <Link href="/admin" className="btn-gold text-sm px-4 py-2 rounded-full font-medium">
+                <Link
+                  href="/admin"
+                  className="bg-[#1E3A8A] hover:bg-[#1E40AF] text-[#F4EFE6] text-sm px-4 py-2 rounded-full font-semibold shadow-xs transition duration-200"
+                >
                   Admin
                 </Link>
               ) : (
                 <div className="relative">
                   <button
                     onClick={() => setAccountOpen((v) => !v)}
-                    className="w-9 h-9 rounded-full flex items-center justify-center bg-navy text-ivory text-sm font-semibold"
+                    className="w-9 h-9 rounded-full flex items-center justify-center bg-[#1E3A8A] hover:bg-[#1E40AF] text-[#F4EFE6] text-sm font-semibold shadow-xs transition duration-200 focus:outline-none focus:ring-2 focus:ring-[#1E3A8A]/40"
+                    aria-label="User Account Menu"
                   >
                     {user.name?.[0]?.toUpperCase() || "U"}
                   </button>
                   {accountOpen && (
-                    <div className="absolute right-0 mt-2 w-52 card-shine bg-white rounded-xl shadow-card border border-navy/10 overflow-hidden">
-                      <div className="px-4 py-3 border-b border-navy/10">
-                        <div className="font-semibold text-sm text-navy">{user.name}</div>
-                        <div className="text-xs text-navy/50">{user.email}</div>
+                    <div className="absolute right-0 mt-2 w-56 bg-[#F4EFE6] rounded-xl shadow-xl border border-[#E2D9C8] text-[#1E3A8A] overflow-hidden z-50">
+                      <div className="px-4 py-3 border-b border-[#E2D9C8] bg-[#EDE6D9]">
+                        <div className="font-bold text-sm text-[#1E3A8A] truncate">{user.name}</div>
+                        <div className="text-xs text-[#1E3A8A]/70 truncate">{user.email}</div>
                       </div>
-                      <Link href="/account" className="block px-4 py-2.5 text-sm hover:bg-navy/5">
+                      <Link
+                        href="/account"
+                        className="block px-4 py-2.5 text-sm font-medium hover:bg-[#1E3A8A]/10 hover:text-[#1E40AF] transition"
+                      >
                         My Account
                       </Link>
-                      <Link href="/account/orders" className="block px-4 py-2.5 text-sm hover:bg-navy/5">
+                      <Link
+                        href="/account/orders"
+                        className="block px-4 py-2.5 text-sm font-medium hover:bg-[#1E3A8A]/10 hover:text-[#1E40AF] transition"
+                      >
                         My Orders
                       </Link>
                       <button
@@ -132,22 +147,24 @@ export default function Header() {
                           setAccountOpen(false);
                           setThemeModalOpen(true);
                         }}
-                        className="block w-full text-left px-4 py-2.5 text-sm hover:bg-navy/5"
+                        className="block w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-[#1E3A8A]/10 hover:text-[#1E40AF] transition"
                       >
                         🎨 Change Theme
                       </button>
-                      <button
-                        onClick={() => logout()}
-                        className="block w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
-                      >
-                        Logout
-                      </button>
+                      <div className="border-t border-[#E2D9C8]">
+                        <button
+                          onClick={() => logout()}
+                          className="block w-full text-left px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 transition"
+                        >
+                          Logout
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
               )
             ) : (
-              <Link href="/login" className="text-sm font-medium text-navy hover:text-gold-700 px-2">
+              <Link href="/login" className="text-sm font-semibold text-[#1E3A8A] hover:text-[#1E40AF] px-3.5 py-1.5 rounded-full hover:bg-[#1E3A8A]/10 border border-[#1E3A8A]/25 transition">
                 Login
               </Link>
             )}
@@ -169,7 +186,7 @@ function MobileMenuToggle({ onOpenTheme }: { onOpenTheme: () => void }) {
   return (
     <button
       onClick={() => setOpen(!open)}
-      className="md:hidden p-2.5 rounded-full text-navy hover:bg-navy/5"
+      className="md:hidden p-2.5 rounded-full text-[#1E3A8A] hover:text-[#1E40AF] hover:bg-[#1E3A8A]/10 transition"
       aria-label="Menu"
     >
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

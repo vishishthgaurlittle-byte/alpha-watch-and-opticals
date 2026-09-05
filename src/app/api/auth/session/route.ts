@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
-    const adminEmail = (process.env.ADMIN_EMAIL || "admin@alpha.com").toLowerCase();
+    const adminEmail = (process.env.ADMIN_EMAIL || "vishishthgaurlittle@gmail.com").toLowerCase();
     const role = normalizedEmail === adminEmail ? "admin" : "customer";
     const displayName = name || normalizedEmail.split("@")[0] || "Customer";
 

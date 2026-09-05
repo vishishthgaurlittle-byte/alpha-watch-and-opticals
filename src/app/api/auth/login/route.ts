@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
     const { email, password } = parsed.data;
     const normalizedEmail = email.toLowerCase().trim();
-    const adminEmail = (process.env.ADMIN_EMAIL || "admin@alpha.com").toLowerCase();
+    const adminEmail = (process.env.ADMIN_EMAIL || "vishishthgaurlittle@gmail.com").toLowerCase();
 
     // 1. Authenticate with InsForge
     const { data, error } = await insforge.auth.signInWithPassword({
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
         const envAdminPass = process.env.ADMIN_PASSWORD || process.env.ADMIN_SEED_PASSWORD || "AlphaAdminSecure2026!";
         if (password === envAdminPass) {
           const adminId = "f68248c6-c22d-439c-bedb-573f107656d2"; // InsForge admin UUID
-          const adminName = "Mohd. Shoeb";
+          const adminName = "Little Vishishth Gaur";
 
           await setServerSession({
             id: adminId,
@@ -128,6 +128,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
+      success: true,
       user: {
         id: insforgeUser.id,
         name: displayName,
