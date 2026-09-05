@@ -1,16 +1,27 @@
 import { PrismaClient } from "@prisma/client";
 
-declare global {
-  // allow global `var` declarations
-  // eslint-disable-next-line no-var
-  var prisma: PrismaClient | undefined;
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+
+function createPrisma() {
+  return new PrismaClient({
+    log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+  });
 }
 
-export const prisma =
-  global.prisma ||
-  new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"]
-  });
+export function getPrisma(): PrismaClient {
+  if (!globalForPrisma.prisma) globalForPrisma.prisma = createPrisma();
+  return globalForPrisma.prisma;
+}
 
-if (process.env.NODE_ENV !== "production") global.prisma = prisma;
+// Back-compat getter so existing `import prisma from "@/lib/prisma"` still works
+// but construction happens on first property access, not at import during collect-page-data.
+const prisma = new Proxy({} as PrismaClient, {
+  get(_t, prop, recv) {
+    const client = getPrisma();
+    const value = Reflect.get(client, prop, recv);
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});
+
 export default prisma;
+export { prisma };

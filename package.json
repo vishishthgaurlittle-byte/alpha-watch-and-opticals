@@ -5,7 +5,9 @@
   "description": "Alpha Watch & Opticals - Premium Watch House & Opticals eCommerce PWA",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
+    "vercel-build": "prisma generate && next build",
+    "postinstall": "prisma generate",
     "start": "next start",
     "lint": "next lint",
     "seed": "tsx prisma/seed.ts"
