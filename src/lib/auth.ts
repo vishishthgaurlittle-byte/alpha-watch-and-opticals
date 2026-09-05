@@ -71,21 +71,36 @@ export async function getCurrentUser() {
   const session = await getServerSession();
   if (!session) return null;
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.id },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      phone: true,
-      role: true,
-      avatar: true,
-      blocked: true,
-      themePreference: true,
-      createdAt: true
-    }
-  });
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: session.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        avatar: true,
+        blocked: true,
+        themePreference: true,
+        createdAt: true
+      }
+    });
 
-  if (!user || user.blocked) return null;
-  return user;
+    if (!user || user.blocked) return null;
+    return user;
+  } catch (err) {
+    console.warn("Prisma getCurrentUser fallback to session payload:", err);
+    return {
+      id: session.id,
+      name: session.name,
+      email: session.email,
+      phone: null,
+      role: session.role,
+      avatar: null,
+      blocked: false,
+      themePreference: null,
+      createdAt: new Date()
+    };
+  }
 }

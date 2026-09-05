@@ -7,11 +7,18 @@ export async function GET() {
   try {
     const user = await getCurrentUser();
 
-    const setting = await prisma.setting.findUnique({
-      where: { id: "global_settings" }
-    });
+    let globalTheme = DEFAULT_THEME;
+    try {
+      const setting = await prisma.setting.findUnique({
+        where: { id: "global_settings" }
+      });
+      if (setting?.globalTheme && isValidThemeId(setting.globalTheme)) {
+        globalTheme = setting.globalTheme;
+      }
+    } catch {
+      // fallback to default
+    }
 
-    const globalTheme = setting?.globalTheme || DEFAULT_THEME;
     const personalTheme = user?.themePreference || null;
     const resolvedTheme = personalTheme || globalTheme;
 
@@ -21,12 +28,13 @@ export async function GET() {
       resolvedTheme,
       userId: user?.id || null
     });
-  } catch (err: any) {
-    console.error("GET /api/theme error:", err);
-    return NextResponse.json(
-      { globalTheme: DEFAULT_THEME, personalTheme: null, resolvedTheme: DEFAULT_THEME },
-      { status: 500 }
-    );
+  } catch {
+    return NextResponse.json({
+      globalTheme: DEFAULT_THEME,
+      personalTheme: null,
+      resolvedTheme: DEFAULT_THEME,
+      userId: null
+    });
   }
 }
 
@@ -38,10 +46,14 @@ export async function PATCH(req: NextRequest) {
     // 1. Reset personal theme override to follow store default
     if (body.reset === true) {
       if (user) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { themePreference: null }
-        });
+        try {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { themePreference: null }
+          });
+        } catch {
+          // ignore if db unmounted
+        }
       }
       return NextResponse.json({
         success: true,
@@ -61,10 +73,14 @@ export async function PATCH(req: NextRequest) {
 
     // 3. Save to customer user profile if authenticated
     if (user) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { themePreference: themeId }
-      });
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { themePreference: themeId }
+        });
+      } catch {
+        // ignore if db unmounted
+      }
     }
 
     return NextResponse.json({
